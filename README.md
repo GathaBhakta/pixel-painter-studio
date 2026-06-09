@@ -42,7 +42,7 @@ The plugin window resizes to match your frame's aspect ratio. Painted cells writ
 **Prerequisites:** Node.js
 
 ```bash
-git clone https://github.com/gathabh/pixel-painter-studio
+git clone https://github.com/GathaBhakta/pixel-painter-studio
 cd pixel-painter-studio
 node build.js
 ```
