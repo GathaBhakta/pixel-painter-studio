@@ -6,7 +6,7 @@ A Figma plugin for drag-to-paint pixel art without leaving your design file.
 
 ---
 
-## Why
+## 💁🏻‍♀️ Why
 
 Figma's event model only registers discrete clicks and not continuous drag like current painting tools. Every existing approach required clicking one cell at a time, which made fluid pixel art impossible.
 
@@ -14,7 +14,7 @@ Pixel Painter Studio moves the painting surface into an HTML canvas inside the p
 
 ---
 
-## Features
+## 🌈 Features
 
 - **Drag-to-paint** — pen, eraser, fill bucket, rectangle, oval, magic wand select
 - **Symmetry** — horizontal, vertical, and 4-way with real-time axis overlays
@@ -27,7 +27,7 @@ Pixel Painter Studio moves the painting surface into an HTML canvas inside the p
 
 ---
 
-## How it works
+## ✨ How it works
 
 ```
 Draw a frame in Figma → Select it → Fill Frame → Paint → Apply
@@ -37,7 +37,7 @@ The plugin window resizes to match your frame's aspect ratio. Painted cells writ
 
 ---
 
-## Development
+## 🧩 Development
 
 **Prerequisites:** Node.js
 
@@ -51,7 +51,7 @@ Load in Figma: **Plugins → Development → Import plugin from manifest** → s
 
 After any change to `ui/` files, run `node build.js` and reload the plugin in Figma.
 
-### Source structure
+### 📝 Source structure
 
 | File | Purpose |
 |---|---|
@@ -65,7 +65,7 @@ After any change to `ui/` files, run `node build.js` and reload the plugin in Fi
 
 ---
 
-## Status
+## Status - 🟢 LIVE
 
 Live on Figma Community. Early release, think of it as an MVP, feedback is more than welcome. Open an issue or reach out directly.
 
