@@ -1,0 +1,9 @@
+{
+  "name": "Pixel Painter Studio",
+  "id": "1643296970831494477",
+  "api": "1.0.0",
+  "main": "code.js",
+  "editorType": ["figma"],
+  "permissions": ["teamlibrary"],
+  "documentAccess": "dynamic-page"
+}

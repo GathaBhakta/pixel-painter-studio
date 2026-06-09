@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Background -->
+  <rect width="128" height="128" rx="24" fill="#2C2018"/>
+
+  <!-- 5×5 pixel grid — 18px cells, 3px gap, centered -->
+  <!-- Total grid: 5×18 + 4×3 = 102px. Offset: (128-102)/2 = 13px -->
+
+  <!-- Row 0 -->
+  <rect x="13"  y="13"  width="18" height="18" rx="2" fill="#B8607A"/>
+  <rect x="34"  y="13"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+  <rect x="55"  y="13"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+  <rect x="76"  y="13"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+  <rect x="97"  y="13"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+
+  <!-- Row 1 -->
+  <rect x="13"  y="34"  width="18" height="18" rx="2" fill="#C87090"/>
+  <rect x="34"  y="34"  width="18" height="18" rx="2" fill="#B8607A"/>
+  <rect x="55"  y="34"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+  <rect x="76"  y="34"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+  <rect x="97"  y="34"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+
+  <!-- Row 2 -->
+  <rect x="13"  y="55"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+  <rect x="34"  y="55"  width="18" height="18" rx="2" fill="#C87090"/>
+  <rect x="55"  y="55"  width="18" height="18" rx="2" fill="#B8607A"/>
+  <rect x="76"  y="55"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+  <rect x="97"  y="55"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+
+  <!-- Row 3 -->
+  <rect x="13"  y="76"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+  <rect x="34"  y="76"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+  <rect x="55"  y="76"  width="18" height="18" rx="2" fill="#C87090"/>
+  <rect x="76"  y="76"  width="18" height="18" rx="2" fill="#B8607A"/>
+  <rect x="97"  y="76"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+
+  <!-- Row 4 -->
+  <rect x="13"  y="97"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+  <rect x="34"  y="97"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+  <rect x="55"  y="97"  width="18" height="18" rx="2" fill="#1E1208" opacity="0.6"/>
+  <rect x="76"  y="97"  width="18" height="18" rx="2" fill="#C87090"/>
+  <rect x="97"  y="97"  width="18" height="18" rx="2" fill="#B8607A"/>
+</svg>

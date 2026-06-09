@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- STYLES -->
+</head>
+<body>
+
+<!-- ═══ NORMAL-MODE CHROME ═══════════════════════════════════════════════════ -->
+
+<div class="header" id="header">
+  <div>
+    <span class="header-title">Pixel Painter Studio</span>
+    <span class="header-sub">Frame-first · canvas-paint · export</span>
+  </div>
+</div>
+
+<div class="tab-bar" id="tab-bar">
+  <button class="tab active" data-tab="setup">Setup</button>
+</div>
+
+<!-- ═══ PAINT-MODE TOOLBAR ════════════════════════════════════════════════════ -->
+
+<!-- Pick-mode banner — shown when eyedropper is active -->
+<div class="pick-banner" id="pick-banner">
+  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 2l4 4-6 6-1.5-.5-3 3H2v-2l3-3-.5-1.5L10 2z"/>
+    <circle cx="11" cy="5" r="1" fill="currentColor" stroke="none"/>
+  </svg>
+  <span>Click any element in Figma to sample its color</span>
+  <button class="pick-cancel-btn" id="pick-cancel" title="Cancel">&#10005;</button>
+</div>
+
+<!-- Selection banner — shown when wand selection is active -->
+<div class="sel-banner" id="sel-banner">
+  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+    <rect x="2" y="2" width="12" height="12" rx="1" stroke-dasharray="3,2"/>
+    <line x1="11" y1="11" x2="14.5" y2="14.5" stroke-width="1.8" stroke-linecap="round"/>
+  </svg>
+  <span id="sel-count">0 cells selected</span>
+  <div class="sel-actions">
+    <button class="sel-btn sel-fill-btn" id="sel-fill-btn" title="Fill selection with current color">Fill</button>
+    <button class="sel-btn sel-remove-btn" id="sel-remove-btn" title="Erase selected cells">Remove</button>
+    <button class="sel-cancel-btn" id="sel-deselect-btn" title="Deselect (Esc)">&#10005;</button>
+  </div>
+</div>
+
+<div class="toolbar" id="toolbar">
+  <button class="tool-back" id="btn-back">&#8592; Setup</button>
+  <div class="tool-sep"></div>
+
+  <button class="tool-btn active" id="tool-pen" data-tool="pen" title="Pen (P)">
+    <svg viewBox="0 0 16 16"><path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" stroke-width="1.3"/></svg>
+    <span>Pen</span>
+  </button>
+  <button class="tool-btn" id="tool-eraser" data-tool="eraser" title="Eraser (E)">
+    <svg viewBox="0 0 16 16"><rect x="2" y="6" width="12" height="7" rx="1.5" stroke-width="1.3"/><line x1="5.5" y1="6" x2="4" y2="13" stroke-width="1.3"/></svg>
+    <span>Eraser</span>
+  </button>
+  <button class="tool-btn" id="tool-eye" data-tool="eyedropper" title="Eyedropper (I)">
+    <svg viewBox="0 0 16 16"><path d="M10 2l4 4-6 6-1.5-.5-3 3H2v-2l3-3-.5-1.5L10 2z" stroke-width="1.3"/></svg>
+    <span>Pick</span>
+  </button>
+  <button class="tool-btn" id="tool-bucket" data-tool="bucket" title="Fill (B)">
+    <svg viewBox="0 0 16 16" stroke-width="1.3" fill="none"><path d="M3 12.5l5-9 5 9"/><path d="M4.5 10h7"/><circle cx="13.5" cy="13" r="1.5" fill="currentColor" stroke="none"/></svg>
+    <span>Fill</span>
+  </button>
+  <button class="tool-btn" id="tool-rect" data-tool="rect" title="Rectangle (R)  ·  Shift = square">
+    <svg viewBox="0 0 16 16" stroke-width="1.3" fill="none"><rect x="2.5" y="4.5" width="11" height="7" rx="0.5"/></svg>
+    <span>Rect</span>
+  </button>
+  <button class="tool-btn" id="tool-oval" data-tool="oval" title="Oval (O)  ·  Shift = circle">
+    <svg viewBox="0 0 16 16" stroke-width="1.3" fill="none"><ellipse cx="8" cy="8" rx="5.5" ry="4"/></svg>
+    <span>Oval</span>
+  </button>
+  <button class="tool-btn" id="tool-wand" data-tool="wand" title="Select by color (W)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+      <rect x="1.5" y="1.5" width="9" height="9" rx="0.5" stroke-dasharray="2.5,1.8"/>
+      <line x1="9.5" y1="9.5" x2="14" y2="14" stroke-width="1.7"/>
+    </svg>
+    <span>Select</span>
+  </button>
+
+  <div class="tool-sep"></div>
+
+  <button class="tool-btn" id="sym-h" data-mode="H" title="Symmetry: Horizontal — click again to turn off">
+    <svg viewBox="0 0 16 16" stroke-width="1.3" fill="none"><line x1="2" y1="8" x2="14" y2="8"/><line x1="5" y1="4" x2="5" y2="12"/><line x1="11" y1="4" x2="11" y2="12"/></svg>
+    <span>Sym H</span>
+  </button>
+  <button class="tool-btn" id="sym-v" data-mode="V" title="Symmetry: Vertical — click again to turn off">
+    <svg viewBox="0 0 16 16" stroke-width="1.3" fill="none"><line x1="8" y1="2" x2="8" y2="14"/><line x1="4" y1="5" x2="12" y2="5"/><line x1="4" y1="11" x2="12" y2="11"/></svg>
+    <span>Sym V</span>
+  </button>
+  <button class="tool-btn" id="sym-4" data-mode="4" title="Symmetry: 4-way — click again to turn off">
+    <svg viewBox="0 0 16 16" stroke-width="1.3" fill="none"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>
+    <span>Sym 4</span>
+  </button>
+
+  <div class="tool-sep"></div>
+
+  <button class="tool-btn" id="tool-undo" title="Undo (Ctrl+Z)">
+    <svg viewBox="0 0 16 16" stroke-width="1.3"><path d="M4 8a5 5 0 1 1 1.2 3.3" fill="none"/><polyline points="1.5,5 4,8 6.5,5.5" fill="none"/></svg>
+    <span>Undo</span>
+  </button>
+  <button class="tool-btn" id="tool-redo" title="Redo (Ctrl+Shift+Z)">
+    <svg viewBox="0 0 16 16" stroke-width="1.3"><path d="M12 8a5 5 0 1 0-1.2 3.3" fill="none"/><polyline points="14.5,5 12,8 9.5,5.5" fill="none"/></svg>
+    <span>Redo</span>
+  </button>
+
+</div>
+
+<!-- ═══ NORMAL-MODE PANELS ════════════════════════════════════════════════════ -->
+
+<div class="panels-wrap" id="panels-wrap">
+
+  <!-- ─── SETUP ────────────────────────────────────────────────────────────── -->
+  <div class="tab-panel active" id="panel-setup">
+
+    <div class="sel-bar empty" id="sel-bar">
+      <div class="sel-title">No frame selected</div>
+      <div class="sel-sub">Select a plain frame in Figma to fill it with a pixel grid</div>
+      <button class="btn btn-sage sel-open-btn" id="btn-open-canvas">Continue Painting</button>
+    </div>
+
+    <div class="sec">Cell Size</div>
+    <div class="snap-row" id="snap-setup">
+      <button class="snap" data-s="4">4</button>
+      <button class="snap" data-s="8">8</button>
+      <button class="snap" data-s="10">10</button>
+      <button class="snap" data-s="12">12</button>
+      <button class="snap on" data-s="16">16</button>
+      <button class="snap" data-s="24">24</button>
+      <button class="snap" data-s="32">32</button>
+      <button class="snap" data-s="48">48</button>
+    </div>
+
+    <div class="sec">Cell Spacing</div>
+    <div class="sp-row">
+      <label class="sp-opt on" id="sp1">
+        <div class="sp-dot"></div>
+        <div><div class="sp-txt">1px gap</div><div class="sp-sub">Cross-stitch</div></div>
+      </label>
+      <label class="sp-opt" id="sp0">
+        <div class="sp-dot"></div>
+        <div><div class="sp-txt">No gap</div><div class="sp-sub">Solid weave</div></div>
+      </label>
+    </div>
+
+    <div class="sec">Grid Preview</div>
+    <div class="grid-calc">
+      <div><div class="gc-label">Columns</div><div class="gc-val" id="gc-cols">—</div></div>
+      <div><div class="gc-label">Rows</div><div class="gc-val" id="gc-rows">—</div></div>
+      <div><div class="gc-label">Total cells</div><div class="gc-val" id="gc-total">—</div></div>
+    </div>
+
+    <button class="btn btn-terra" id="btn-fill" disabled>Fill Frame &amp; Open Canvas</button>
+    <p class="hint">Draw a frame in Figma, select it, choose a cell size, then click Fill. The window resizes to match your frame.</p>
+
+  </div><!-- /panel-setup -->
+
+
+</div><!-- /panels-wrap -->
+
+<!-- ═══ PAINT-MODE BODY ═══════════════════════════════════════════════════════ -->
+
+<div class="paint-body" id="paint-body">
+
+  <!-- ── LEFT PANEL ──────────────────────────────────────────────────────────── -->
+  <div class="left-panel" id="left-panel">
+
+    <!-- Preview section -->
+    <div class="lp-section">
+      <div class="lp-section-hd">
+        <span class="lp-section-title">Preview</span>
+        <button class="lp-collapse-btn" id="thumb-toggle" aria-label="Collapse preview">&#9660;</button>
+      </div>
+      <div class="lp-section-body" id="thumb-body">
+        <div class="thumb-wrap" id="thumb-wrap">
+          <canvas id="canvas-thumb"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reference section -->
+    <div class="lp-section" id="lp-ref">
+      <div class="lp-section-hd">
+        <span class="lp-section-title">Reference</span>
+        <button class="lp-collapse-btn" id="ref-collapse-btn" aria-label="Collapse reference">&#9660;</button>
+      </div>
+      <div class="lp-section-body" id="ref-body">
+
+        <div class="ref-drop-mini" id="ref-drop-mini">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="12" height="12" rx="2"/><circle cx="5.5" cy="5.5" r="1.2" fill="currentColor" stroke="none"/><polyline points="14,11 10.5,7.5 3,14"/></svg>
+          <span>Drop image or click to browse</span>
+          <input type="file" id="ref-file-input" accept="image/*" style="display:none">
+        </div>
+
+        <div id="ref-loaded" style="display:none">
+          <div class="ref-thumb-row">
+            <img id="ref-thumb" class="ref-thumb" alt="Reference">
+            <button class="btn-icon-sm" id="ref-remove-btn" title="Remove">&#10005;</button>
+          </div>
+          <div class="trace-opacity-row">
+            <input type="range" id="ref-opacity" min="10" max="80" value="40" step="5" class="trace-slider">
+            <span id="ref-opacity-val">40%</span>
+          </div>
+          <label class="ref-toggle-label">
+            <input type="checkbox" id="ref-vis-toggle" checked>
+            <span>Show in canvas</span>
+          </label>
+          <p class="hint" style="margin-top:2px">Blue bar = drag to move · corner = resize</p>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /left-panel -->
+
+  <!-- ── CANVAS AREA (scroll + zoom bar) ───────────────────────────────────── -->
+  <div class="canvas-area" id="canvas-area">
+    <div class="canvas-scroll" id="canvas-scroll">
+      <img id="ref-image" alt="">
+      <canvas id="paint-canvas"></canvas>
+      <canvas id="preview-canvas"></canvas>
+      <div class="ref-handle" id="ref-handle-move"></div>
+      <div class="ref-handle" id="ref-handle-br"></div>
+      <div class="sym-axis sym-axis-h" id="sym-axis-h"></div>
+      <div class="sym-axis sym-axis-v" id="sym-axis-v"></div>
+    </div>
+    <div class="zoom-bar" id="zoom-bar">
+      <button class="zoom-btn" id="zoom-out" title="Zoom out">−</button>
+      <span class="zoom-level" id="zoom-level">100%</span>
+      <button class="zoom-btn" id="zoom-in"  title="Zoom in">+</button>
+      <div class="zoom-sep"></div>
+      <button class="zoom-btn zoom-fit-btn" id="zoom-fit" title="Fit canvas to window">Fit</button>
+      <span class="zoom-hint">Scroll to zoom · Space+drag to pan</span>
+    </div>
+  </div>
+
+  <!-- ── RIGHT PANEL (color) ───────────────────────────────────────────────── -->
+  <div class="right-panel" id="right-panel">
+
+    <!-- Color source tabs -->
+    <div class="color-tabs">
+      <button class="ctab active" data-ctab="picker">Picker</button>
+      <button class="ctab" data-ctab="library">Library</button>
+      <button class="ctab" data-ctab="custom">Custom</button>
+    </div>
+
+    <!-- Color tab panels — fill remaining space, scroll internally -->
+    <div class="ctab-panel active" id="cpanel-picker">
+      <div class="hsb-canvas-wrap">
+        <canvas id="hsb-canvas" width="256" height="148"></canvas>
+        <div class="hsb-thumb" id="hsb-thumb"></div>
+      </div>
+      <div class="hue-wrap">
+        <canvas id="hue-canvas" width="256" height="13"></canvas>
+        <div class="hue-thumb" id="hue-thumb"></div>
+      </div>
+      <div class="picker-inputs">
+        <div class="picker-preview" id="picker-preview"></div>
+        <div class="picker-fields">
+          <div class="picker-hex-row">
+            <span class="field-label">HEX</span>
+            <input class="picker-hex-inp" id="picker-hex" type="text" maxlength="7" placeholder="#B8607A" spellcheck="false">
+          </div>
+          <div class="picker-rgb-row">
+            <span class="field-label">R</span>
+            <input class="picker-rgb-inp" id="picker-r" type="number" min="0" max="255" placeholder="0">
+            <span class="field-label">G</span>
+            <input class="picker-rgb-inp" id="picker-g" type="number" min="0" max="255" placeholder="0">
+            <span class="field-label">B</span>
+            <input class="picker-rgb-inp" id="picker-b" type="number" min="0" max="255" placeholder="0">
+          </div>
+        </div>
+      </div>
+      <div class="lp-sub-title">Recent</div>
+      <div class="recent-swatches" id="recent-swatches">
+        <span class="recent-empty">No colors used yet</span>
+      </div>
+      <div class="lp-sub-title">Presets</div>
+      <div class="quick-grid" id="quick-grid"></div>
+    </div>
+
+    <div class="ctab-panel" id="cpanel-library">
+      <div class="lib-dropdown-wrap">
+        <button class="lib-dropdown-btn" id="lib-btn">
+          <span id="lib-name">Local styles &amp; variables</span>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="2,3 5,7 8,3"/></svg>
+        </button>
+        <div class="lib-menu" id="lib-menu"></div>
+      </div>
+      <div class="lib-empty" id="lib-empty">Loading colors…</div>
+      <div class="sw-grid" id="lib-swatch-grid"></div>
+    </div>
+
+    <div class="ctab-panel" id="cpanel-custom">
+      <div class="sw-grid" id="custom-grid">
+        <span class="recent-empty" style="grid-column:1/-1">No custom colors yet</span>
+      </div>
+      <div class="custom-add-row">
+        <button class="btn-small btn-sage"  id="btn-add-custom">+ Current color</button>
+        <button class="btn-small btn-ghost" id="btn-clear-custom">Clear</button>
+      </div>
+    </div>
+
+    <!-- Cell shape section — always visible at bottom of right panel -->
+    <div class="shape-section">
+      <div class="shape-header">
+        <span class="shape-label">Cell shape</span>
+        <span class="shape-val" id="shape-val">Square</span>
+      </div>
+      <input type="range" id="cell-radius-slider" min="0" max="100" value="0" step="1" class="shape-slider">
+      <div class="shape-presets">
+        <button class="shape-preset" data-radius="0" title="Square">
+          <svg viewBox="0 0 14 14" width="14" height="14"><rect x="1" y="1" width="12" height="12" rx="0" fill="currentColor"/></svg>
+        </button>
+        <button class="shape-preset" data-radius="25" title="Rounded">
+          <svg viewBox="0 0 14 14" width="14" height="14"><rect x="1" y="1" width="12" height="12" rx="3" fill="currentColor"/></svg>
+        </button>
+        <button class="shape-preset" data-radius="50" title="Pill">
+          <svg viewBox="0 0 14 14" width="14" height="14"><rect x="1" y="1" width="12" height="12" rx="6" fill="currentColor"/></svg>
+        </button>
+        <button class="shape-preset" data-radius="100" title="Circle">
+          <svg viewBox="0 0 14 14" width="14" height="14"><circle cx="7" cy="7" r="6" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Paint actions — always visible below cell shape -->
+    <div class="paint-actions">
+      <button class="btn btn-sage"  id="btn-apply-selected" title="Apply painting to the selected Figma frame">Apply to Frame</button>
+      <button class="btn btn-ghost" id="btn-apply-new"      title="Apply as a new Figma frame">Apply as New</button>
+      <button class="btn btn-ghost paint-clear-btn" id="tool-clear" title="Clear all painted cells">Clear Canvas</button>
+    </div>
+
+  </div><!-- /right-panel -->
+
+</div><!-- /paint-body -->
+
+<!-- ═══ TOAST ══════════════════════════════════════════════════════════════════ -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══ WINDOW RESIZE HANDLE ═══════════════════════════════════════════════════ -->
+<div id="win-resize-handle" title="Drag to resize window"></div>
+
+<!-- SCRIPTS -->
+</body>
+</html>
