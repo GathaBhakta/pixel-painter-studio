@@ -38,7 +38,7 @@ node build.js
 | `ui/tools.js` | Reserved — currently empty |
 | `ui/export.js` | Reserved — currently empty |
 | `icon.svg` | Plugin icon — used for Community listing upload, not referenced in manifest |
-| `CASE_STUDY.md` | Project case study — no effect on plugin |
+| `CASE_STUDY.md` | Project case study — no effect on plugin | Deleted from GitHub file |
 
 ---
 
@@ -118,13 +118,12 @@ node build.js
 Do not build these until there is real user signal:
 - Palette generation from reference image
 - Animation frames / sprite sheet export
-- Freemium split (canvas size gate at 32×32 free, unlimited paid)
 
 ---
 
 ## Monetization status
 
-Not monetized. Launch is free to establish user base and gather feedback. Revisit after 500+ installs and repeated feature requests that don't yet exist.
+Not monetized. Launch is free; feedback is needed on plugin functionalities and any bugs.
 
 ---
 
