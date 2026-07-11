@@ -64,6 +64,10 @@ var _selectedCells = new Set();
 // Cell corner radius (0–100, where 100 = circle)
 var _cellRadius = 0;
 
+// Cell shape mode — 'radius' uses _cellRadius above, 'cross' draws a
+// cross-stitch X instead of a filled square/rounded shape.
+var _cellShapeMode = 'radius';
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 function initCanvas(cols, rows, canvasW, canvasH, gap, figmaCellSize) {
@@ -330,6 +334,11 @@ function setCellRadius(pct) {
   renderCanvas();
 }
 
+function setCellShapeMode(mode) {
+  _cellShapeMode = (mode === 'cross') ? 'cross' : 'radius';
+  renderCanvas();
+}
+
 function _drawRoundedCell(x, y, size, r) {
   if (r <= 0) { _ctx.fillRect(x, y, size, size); return; }
   r = Math.min(r, size * 0.5);
@@ -347,6 +356,21 @@ function _drawRoundedCell(x, y, size, r) {
   _ctx.fill();
 }
 
+function _drawCrossCell(x, y, size) {
+  // Matches the design spec: 14x14 viewBox, path "M1 1L13 13M13 1L1 13", stroke-width 2.8.
+  var inset = size * (1 / 14);
+  _ctx.save();
+  _ctx.lineWidth = Math.max(1, size * (2.8 / 14));
+  _ctx.lineCap   = 'round';
+  _ctx.beginPath();
+  _ctx.moveTo(x + inset,        y + inset);
+  _ctx.lineTo(x + size - inset, y + size - inset);
+  _ctx.moveTo(x + size - inset, y + inset);
+  _ctx.lineTo(x + inset,        y + size - inset);
+  _ctx.stroke();
+  _ctx.restore();
+}
+
 function renderCanvas() {
   if (!_ctx || !_cols) return;
   var W = _cols * _cellPx, H = _rows * _cellPx;
@@ -356,8 +380,13 @@ function renderCanvas() {
     for (var c = 0; c < _cols; c++) {
       var hex = _cells[r][c];
       if (!hex) continue;
-      _ctx.fillStyle = hex;
-      _drawRoundedCell(c * _cellPx, r * _cellPx, _cellPx, rad);
+      if (_cellShapeMode === 'cross') {
+        _ctx.strokeStyle = hex;
+        _drawCrossCell(c * _cellPx, r * _cellPx, _cellPx);
+      } else {
+        _ctx.fillStyle = hex;
+        _drawRoundedCell(c * _cellPx, r * _cellPx, _cellPx, rad);
+      }
     }
   }
   if (_cellPx >= 3) {
@@ -615,9 +644,14 @@ function _renderCell(row, col) {
   _ctx.clearRect(x, y, _cellPx, _cellPx);
   var hex = _cells[row][col];
   if (hex) {
-    _ctx.fillStyle = hex;
-    var rad = Math.round((_cellRadius / 100) * (_cellPx * 0.5));
-    _drawRoundedCell(x, y, _cellPx, rad);
+    if (_cellShapeMode === 'cross') {
+      _ctx.strokeStyle = hex;
+      _drawCrossCell(x, y, _cellPx);
+    } else {
+      _ctx.fillStyle = hex;
+      var rad = Math.round((_cellRadius / 100) * (_cellPx * 0.5));
+      _drawRoundedCell(x, y, _cellPx, rad);
+    }
   }
   if (_cellPx < 3) return;
   _ctx.save();

@@ -1234,6 +1234,9 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:13px; h
         <button class="shape-preset" data-radius="100" title="Circle">
           <svg viewBox="0 0 14 14" width="14" height="14"><circle cx="7" cy="7" r="6" fill="currentColor"/></svg>
         </button>
+        <button class="shape-preset" data-shape="cross" title="Cross-stitch">
+          <svg viewBox="0 0 14 14" width="14" height="14"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>
+        </button>
       </div>
     </div>
 
@@ -1321,6 +1324,10 @@ var _selectedCells = new Set();
 
 // Cell corner radius (0–100, where 100 = circle)
 var _cellRadius = 0;
+
+// Cell shape mode — 'radius' uses _cellRadius above, 'cross' draws a
+// cross-stitch X instead of a filled square/rounded shape.
+var _cellShapeMode = 'radius';
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -1588,6 +1595,11 @@ function setCellRadius(pct) {
   renderCanvas();
 }
 
+function setCellShapeMode(mode) {
+  _cellShapeMode = (mode === 'cross') ? 'cross' : 'radius';
+  renderCanvas();
+}
+
 function _drawRoundedCell(x, y, size, r) {
   if (r <= 0) { _ctx.fillRect(x, y, size, size); return; }
   r = Math.min(r, size * 0.5);
@@ -1605,6 +1617,21 @@ function _drawRoundedCell(x, y, size, r) {
   _ctx.fill();
 }
 
+function _drawCrossCell(x, y, size) {
+  // Matches the design spec: 14x14 viewBox, path "M1 1L13 13M13 1L1 13", stroke-width 2.8.
+  var inset = size * (1 / 14);
+  _ctx.save();
+  _ctx.lineWidth = Math.max(1, size * (2.8 / 14));
+  _ctx.lineCap   = 'round';
+  _ctx.beginPath();
+  _ctx.moveTo(x + inset,        y + inset);
+  _ctx.lineTo(x + size - inset, y + size - inset);
+  _ctx.moveTo(x + size - inset, y + inset);
+  _ctx.lineTo(x + inset,        y + size - inset);
+  _ctx.stroke();
+  _ctx.restore();
+}
+
 function renderCanvas() {
   if (!_ctx || !_cols) return;
   var W = _cols * _cellPx, H = _rows * _cellPx;
@@ -1614,8 +1641,13 @@ function renderCanvas() {
     for (var c = 0; c < _cols; c++) {
       var hex = _cells[r][c];
       if (!hex) continue;
-      _ctx.fillStyle = hex;
-      _drawRoundedCell(c * _cellPx, r * _cellPx, _cellPx, rad);
+      if (_cellShapeMode === 'cross') {
+        _ctx.strokeStyle = hex;
+        _drawCrossCell(c * _cellPx, r * _cellPx, _cellPx);
+      } else {
+        _ctx.fillStyle = hex;
+        _drawRoundedCell(c * _cellPx, r * _cellPx, _cellPx, rad);
+      }
     }
   }
   if (_cellPx >= 3) {
@@ -1873,9 +1905,14 @@ function _renderCell(row, col) {
   _ctx.clearRect(x, y, _cellPx, _cellPx);
   var hex = _cells[row][col];
   if (hex) {
-    _ctx.fillStyle = hex;
-    var rad = Math.round((_cellRadius / 100) * (_cellPx * 0.5));
-    _drawRoundedCell(x, y, _cellPx, rad);
+    if (_cellShapeMode === 'cross') {
+      _ctx.strokeStyle = hex;
+      _drawCrossCell(x, y, _cellPx);
+    } else {
+      _ctx.fillStyle = hex;
+      var rad = Math.round((_cellRadius / 100) * (_cellPx * 0.5));
+      _drawRoundedCell(x, y, _cellPx, rad);
+    }
   }
   if (_cellPx < 3) return;
   _ctx.save();
@@ -2556,36 +2593,56 @@ function initLibraryPanel() {
   document.addEventListener('click', function () { menu.classList.remove('open'); });
 }
 
+// Cache of the most recent lib-colors response, so the empty-state message
+// can be corrected once \`libraries\` arrives (it's a separate, slower async
+// round-trip than the local-color read, so it often lands second).
+var _lastLibColors = null;
+var _lastLibKey     = '__local__';
+var _lastLibName    = '__local__';
+
 function handleLibraries(libs) {
   _availableLibs = libs || [];
   var menu = document.getElementById('lib-menu');
-  if (!menu) return;
-  menu.innerHTML = '';
+  if (menu) {
+    menu.innerHTML = '';
 
-  function _makeItem(label, key, name) {
-    var item = document.createElement('div');
-    item.className   = 'lib-menu-item';
-    item.textContent = label;
-    item.addEventListener('click', function () {
-      document.getElementById('lib-name').textContent = label;
-      menu.classList.remove('open');
-      var empty = document.getElementById('lib-empty');
-      var grid  = document.getElementById('lib-swatch-grid');
-      if (empty) { empty.style.display = ''; empty.textContent = 'Loading…'; }
-      if (grid)  grid.innerHTML = '';
-      postMsg({ type: 'load-lib-colors', key: key, name: name });
-    });
-    menu.appendChild(item);
+    function _makeItem(label, key, name, collectionKeys) {
+      var item = document.createElement('div');
+      item.className   = 'lib-menu-item';
+      item.textContent = label;
+      item.addEventListener('click', function () {
+        document.getElementById('lib-name').textContent = label;
+        menu.classList.remove('open');
+        var empty = document.getElementById('lib-empty');
+        var grid  = document.getElementById('lib-swatch-grid');
+        if (empty) { empty.style.display = ''; empty.textContent = 'Loading…'; }
+        if (grid)  grid.innerHTML = '';
+        postMsg({ type: 'load-lib-colors', key: key, name: name, collectionKeys: collectionKeys });
+      });
+      menu.appendChild(item);
+    }
+
+    _makeItem('Local styles & variables', '__local__', '__local__');
+    libs.forEach(function (lib) { _makeItem(lib.name, lib.key, lib.name, lib.collections); });
   }
 
-  _makeItem('Local styles & variables', '__local__', '__local__');
-  libs.forEach(function (lib) { _makeItem(lib.name, lib.key, lib.name); });
+  // If we already rendered an empty state for local colors before this
+  // library list arrived, re-render now that we know whether libraries exist.
+  if (_lastLibKey === '__local__' && _lastLibColors && !_lastLibColors.length) {
+    handleLibColors(_lastLibColors, _lastLibKey, _lastLibName);
+  }
 }
 
-function handleLibColors(colors) {
+function handleLibColors(colors, key, name) {
   var grid  = document.getElementById('lib-swatch-grid');
   var empty = document.getElementById('lib-empty');
   if (!grid) return;
+
+  key = key || '__local__';
+  _lastLibColors = colors || [];
+  _lastLibKey    = key;
+  _lastLibName   = name || key;
+
   if (empty) empty.style.display = 'none';
   grid.innerHTML = '';
 
@@ -2599,7 +2656,27 @@ function handleLibColors(colors) {
       empty.innerHTML = '';
       empty.style.display = 'block';
       empty.className = 'lib-empty-state';
-      if (_availableLibs.length > 0) {
+
+      if (key !== '__local__') {
+        // Figma's plugin API can only enumerate Variables from a library,
+        // not classic Color Styles — this is a platform limitation, not a bug.
+        var lmsg1 = document.createElement('p');
+        lmsg1.className = 'hint'; lmsg1.textContent = 'No color variables found in "' + name + '".';
+        var lmsg2 = document.createElement('p');
+        lmsg2.className = 'hint';
+        lmsg2.textContent = 'If this library publishes classic Color Styles instead of Variables, plugins can’t read them — that’s a Figma API limitation.';
+        empty.appendChild(lmsg1); empty.appendChild(lmsg2);
+        var backBtn = document.createElement('button');
+        backBtn.className = 'btn-small btn-ghost lib-switch-btn';
+        backBtn.textContent = 'Back to Local styles & variables';
+        backBtn.addEventListener('click', function () {
+          document.getElementById('lib-name').textContent = 'Local styles & variables';
+          if (empty) { empty.style.display = ''; empty.textContent = 'Loading…'; }
+          grid.innerHTML = '';
+          postMsg({ type: 'load-lib-colors', key: '__local__', name: '__local__' });
+        });
+        empty.appendChild(backBtn);
+      } else if (_availableLibs.length > 0) {
         var msg1 = document.createElement('p');
         msg1.className = 'hint'; msg1.textContent = 'No local styles available.';
         var msg2 = document.createElement('p');
@@ -2611,7 +2688,9 @@ function handleLibColors(colors) {
           btn.textContent = lib.name;
           btn.addEventListener('click', function () {
             document.getElementById('lib-name').textContent = lib.name;
-            postMsg({ type: 'load-lib-colors', key: lib.key, name: lib.name });
+            if (empty) { empty.style.display = ''; empty.textContent = 'Loading…'; }
+            grid.innerHTML = '';
+            postMsg({ type: 'load-lib-colors', key: lib.key, name: lib.name, collectionKeys: lib.collections });
           });
           empty.appendChild(btn);
         });
@@ -2914,7 +2993,7 @@ function initSetupTab() {
         // Apply current art to a new frame before wiping the grid
         postMsg({ type: 'apply-to-figma', cells: state.cells,
           cols: state.cols, rows: state.rows, cellSize: state.cellSize, gap: state.gap,
-          cornerRadiusPct: _cellRadiusPct, createNew: true });
+          cornerRadiusPct: _cellRadiusPct, shape: _cellShapeMode, createNew: true });
         showToast('Saving art then re-gridding…');
       } else {
         showToast('Re-gridding frame…');
@@ -2946,6 +3025,8 @@ function updateGridCalc() {
 
 // ── Cell shape section ────────────────────────────────────────────────────────
 
+var _cellShapeMode = 'radius'; // 'radius' | 'cross' — read by Apply handlers
+
 function initShapeSection() {
   var slider  = document.getElementById('cell-radius-slider');
   var valEl   = document.getElementById('shape-val');
@@ -2959,14 +3040,26 @@ function initShapeSection() {
     return 'Pill';
   }
 
+  function _setActivePreset(matchFn) {
+    presets.forEach(function (b) { b.classList.toggle('active', matchFn(b)); });
+  }
+
   function _applyRadius(pct) {
+    _cellShapeMode = 'radius';
     _cellRadiusPct = pct;
-    if (slider) slider.value = pct;
+    if (slider) { slider.disabled = false; slider.value = pct; }
     if (valEl)  valEl.textContent = _radiusLabel(pct);
-    presets.forEach(function (b) {
-      b.classList.toggle('active', +b.dataset.radius === pct);
-    });
+    _setActivePreset(function (b) { return !b.dataset.shape && +b.dataset.radius === pct; });
+    if (typeof setCellShapeMode === 'function') setCellShapeMode('radius');
     if (typeof setCellRadius === 'function') setCellRadius(pct);
+  }
+
+  function _applyCrossShape() {
+    _cellShapeMode = 'cross';
+    if (slider) slider.disabled = true;
+    if (valEl)  valEl.textContent = 'Cross-stitch';
+    _setActivePreset(function (b) { return b.dataset.shape === 'cross'; });
+    if (typeof setCellShapeMode === 'function') setCellShapeMode('cross');
   }
 
   if (slider) {
@@ -2974,7 +3067,10 @@ function initShapeSection() {
   }
 
   presets.forEach(function (b) {
-    b.addEventListener('click', function () { _applyRadius(+b.dataset.radius); });
+    b.addEventListener('click', function () {
+      if (b.dataset.shape === 'cross') _applyCrossShape();
+      else _applyRadius(+b.dataset.radius);
+    });
   });
 
   _applyRadius(0); // default: square
@@ -2990,7 +3086,7 @@ function initApplyButtons() {
     if (!targetId) { showToast('Select a pixel canvas in Figma first'); return; }
     postMsg({ type: 'apply-to-figma', frameId: targetId, cells: state.cells,
       cols: state.cols, rows: state.rows, cellSize: state.cellSize, gap: state.gap,
-      cornerRadiusPct: _cellRadiusPct, createNew: false });
+      cornerRadiusPct: _cellRadiusPct, shape: _cellShapeMode, createNew: false });
     showToast('Applying to Figma…');
   });
 
@@ -2999,7 +3095,7 @@ function initApplyButtons() {
     if (!state) { showToast('Paint something first'); return; }
     postMsg({ type: 'apply-to-figma', cells: state.cells,
       cols: state.cols, rows: state.rows, cellSize: state.cellSize, gap: state.gap,
-      cornerRadiusPct: _cellRadiusPct, createNew: true });
+      cornerRadiusPct: _cellRadiusPct, shape: _cellShapeMode, createNew: true });
     showToast('Creating new frame…');
   });
 }
@@ -3256,7 +3352,7 @@ window.onmessage = function (ev) {
       break;
 
     case 'lib-colors':
-      handleLibColors(m.colors || []);
+      handleLibColors(m.colors || [], m.key, m.name);
       break;
 
     case 'custom-palette':
@@ -3366,7 +3462,7 @@ function isCanvas(node) {
 }
 
 function isCell(node) {
-  return node && node.type === 'RECTANGLE' &&
+  return node && (node.type === 'RECTANGLE' || node.type === 'VECTOR') &&
     node.name && /^px_\d+_\d+$/.test(node.name);
 }
 
@@ -3453,20 +3549,27 @@ async function fillFrame(frameId, cellSize, gap) {
   var cols   = Math.max(1, Math.floor((W + gap) / stride));
   var rows   = Math.max(1, Math.floor((H + gap) / stride));
 
+  // Column/row counts are floored, so the grid rarely fills the frame exactly —
+  // split the leftover space evenly instead of leaving it all on the right/bottom.
+  var gridW   = cols * stride - gap;
+  var gridH   = rows * stride - gap;
+  var offsetX = Math.max(0, Math.round((W - gridW) / 2));
+  var offsetY = Math.max(0, Math.round((H - gridH) / 2));
+
   filling = true;
   frame.children.slice().forEach(function (c) { c.remove(); });
   frame.setSharedPluginData(PLUGIN_KEY, CANVAS_TAG, 'true');
   frame.fills = solidFill('#F2EDE4');
   frame.clipsContent = true;
-  setConfig(frame, { cols: cols, rows: rows, cellSize: cellSize, gap: gap });
+  setConfig(frame, { cols: cols, rows: rows, cellSize: cellSize, gap: gap, offsetX: offsetX, offsetY: offsetY });
 
   for (var r = 0; r < rows; r++) {
     for (var c = 0; c < cols; c++) {
       var cell = figma.createRectangle();
       cell.name   = 'px_' + pad(c + 1) + '_' + pad(r + 1);
       cell.resize(cellSize, cellSize);
-      cell.x      = c * stride;
-      cell.y      = r * stride;
+      cell.x      = offsetX + c * stride;
+      cell.y      = offsetY + r * stride;
       cell.fills  = transparentFill();
       if (gap > 0) {
         cell.strokes     = solidFill('#000000', 0.15);
@@ -3520,6 +3623,16 @@ async function openCanvas(frameId) {
     var col = parseInt(m[1], 10) - 1;
     var row = parseInt(m[2], 10) - 1;
     if (col < 0 || col >= cols || row < 0 || row >= rows) return;
+
+    if (child.type === 'VECTOR') {
+      // Cross-stitch cells carry their color as a stroke, not a fill.
+      var strokes = child.strokes;
+      if (strokes && strokes.length > 0 && strokes[0].type === 'SOLID' && strokes[0].opacity > 0.01) {
+        cells[row][col] = rgbToHex(strokes[0].color.r, strokes[0].color.g, strokes[0].color.b).toUpperCase();
+      }
+      return;
+    }
+
     var fills = child.fills;
     if (fills && fills.length > 0 && fills[0].type === 'SOLID' && fills[0].opacity > 0.01) {
       cells[row][col] = rgbToHex(fills[0].color.r, fills[0].color.g, fills[0].color.b).toUpperCase();
@@ -3541,8 +3654,9 @@ async function openCanvas(frameId) {
 
 // ── Apply cells batch from canvas → Figma ────────────────────────────────────
 
-async function applyCanvasToFigma(frameId, cells, cols, rows, cellSize, gap, createNew, cornerRadiusPct) {
+async function applyCanvasToFigma(frameId, cells, cols, rows, cellSize, gap, createNew, cornerRadiusPct, shape) {
   var frame;
+  var offsetX = 0, offsetY = 0;
 
   if (createNew) {
     frame = figma.createFrame();
@@ -3552,12 +3666,16 @@ async function applyCanvasToFigma(frameId, cells, cols, rows, cellSize, gap, cre
     frame.x     = figma.viewport.center.x;
     frame.y     = figma.viewport.center.y;
     figma.currentPage.appendChild(frame);
+    // Brand-new frame is sized to fit the grid exactly, so no centering offset needed.
   } else {
     frame = await figma.getNodeByIdAsync(frameId);
     if (!frame || frame.type !== 'FRAME') {
       figma.ui.postMessage({ type: 'error', message: 'Frame not found for apply.' });
       return;
     }
+    // Preserve the centering offset fillFrame originally computed for this frame.
+    var existingCfg = getConfig(frame);
+    if (existingCfg) { offsetX = existingCfg.offsetX || 0; offsetY = existingCfg.offsetY || 0; }
     // Remove old paint cells (keep trace_ cells)
     frame.children.slice().forEach(function (c) {
       if (isCell(c)) c.remove();
@@ -3570,24 +3688,47 @@ async function applyCanvasToFigma(frameId, cells, cols, rows, cellSize, gap, cre
   frame.setSharedPluginData(PLUGIN_KEY, CANVAS_TAG, 'true');
   frame.fills       = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 }, opacity: 0 }];
   frame.clipsContent = true;
-  setConfig(frame, { cols: cols, rows: rows, cellSize: cellSize, gap: gap });
+  setConfig(frame, { cols: cols, rows: rows, cellSize: cellSize, gap: gap, offsetX: offsetX, offsetY: offsetY });
 
   var cellCornerR = cornerRadiusPct > 0
     ? Math.round((cornerRadiusPct / 100) * (cellSize / 2))
     : 0;
 
+  // Matches the design spec: 14x14 viewBox, path "M1 1L13 13M13 1L1 13", stroke-width 2.8.
+  var isCross     = shape === 'cross';
+  var crossInset  = cellSize * (1 / 14);
+  var crossW      = Math.max(cellSize - 2 * crossInset, 1);
+  var crossStroke = Math.max(1, cellSize * (2.8 / 14));
+
   for (var r = 0; r < rows; r++) {
     for (var c = 0; c < cols; c++) {
       var hex = cells[r] && cells[r][c];
       if (!hex) continue; // skip empty cells
-      var cell    = figma.createRectangle();
-      cell.name   = 'px_' + pad(c + 1) + '_' + pad(r + 1);
-      cell.resize(cellSize, cellSize);
-      cell.x      = c * stride;
-      cell.y      = r * stride;
-      cell.fills  = solidFill(hex);
-      cell.strokes = [];
-      if (cellCornerR > 0) cell.cornerRadius = cellCornerR;
+      var cell;
+      if (isCross) {
+        // Cross-stitch cell: an X made of two crossing strokes, not a fill.
+        cell = figma.createVector();
+        cell.name = 'px_' + pad(c + 1) + '_' + pad(r + 1);
+        cell.vectorPaths = [{
+          windingRule: 'NONZERO',
+          data: 'M 0 0 L ' + crossW + ' ' + crossW + ' M ' + crossW + ' 0 L 0 ' + crossW,
+        }];
+        cell.x            = offsetX + c * stride + crossInset;
+        cell.y            = offsetY + r * stride + crossInset;
+        cell.fills        = [];
+        cell.strokes      = solidFill(hex);
+        cell.strokeWeight = crossStroke;
+        cell.strokeCap    = 'ROUND';
+      } else {
+        cell    = figma.createRectangle();
+        cell.name   = 'px_' + pad(c + 1) + '_' + pad(r + 1);
+        cell.resize(cellSize, cellSize);
+        cell.x      = offsetX + c * stride;
+        cell.y      = offsetY + r * stride;
+        cell.fills  = solidFill(hex);
+        cell.strokes = [];
+        if (cellCornerR > 0) cell.cornerRadius = cellCornerR;
+      }
       frame.appendChild(cell);
     }
   }
@@ -3610,6 +3751,10 @@ function placeTrace(pixels, cols, rows, cellSize, gap, refOpacity, skipEmpty) {
   var frame  = sel[0];
   var stride = cellSize + gap;
 
+  var cfg     = getConfig(frame) || {};
+  var offsetX = cfg.offsetX || 0;
+  var offsetY = cfg.offsetY || 0;
+
   // Remove existing trace
   frame.children.slice().forEach(function (c) {
     if (c.name && c.name.indexOf('trace_') === 0) c.remove();
@@ -3622,8 +3767,8 @@ function placeTrace(pixels, cols, rows, cellSize, gap, refOpacity, skipEmpty) {
       var cell    = figma.createRectangle();
       cell.name   = 'trace_' + pad(c + 1) + '_' + pad(r + 1);
       cell.resize(cellSize, cellSize);
-      cell.x      = c * stride;
-      cell.y      = r * stride;
+      cell.x      = offsetX + c * stride;
+      cell.y      = offsetY + r * stride;
       cell.fills  = hex ? solidFill(hex, refOpacity) : transparentFill();
       cell.locked = true;
       frame.insertChild(0, cell);
@@ -3712,36 +3857,56 @@ figma.ui.onmessage = function (msg) {
             });
           } catch (e) {}
           _sortColors(colors);
-          figma.ui.postMessage({ type: 'lib-colors', colors: colors });
+          figma.ui.postMessage({ type: 'lib-colors', colors: colors, key: '__local__', name: '__local__' });
         } else {
           try {
-            var collections = await figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync();
-            var libCols = collections.filter(function (c) {
-              return (c.libraryName || c.name) === msg.name || c.key === msg.key;
-            });
-            for (var i = 0; i < libCols.length; i++) {
-              var vars = await figma.teamLibrary.getVariablesInLibraryCollectionAsync(libCols[i].key);
-              for (var j = 0; j < vars.length; j++) {
-                var v = vars[j];
-                if (v.resolvedType !== 'COLOR') continue;
-                try {
-                  var imported = await figma.variables.importVariableByKeyAsync(v.key);
-                  var modeId   = Object.keys(imported.valuesByMode)[0];
-                  var val      = imported.valuesByMode[modeId];
-                  if (!val || typeof val !== 'object' || !('r' in val)) continue;
-                  var hex   = rgbToHex(val.r, val.g, val.b);
-                  var parts = v.name.split('/');
-                  colors.push({
-                    group: parts.length > 1 ? parts.slice(0, -1).join('/') : msg.name,
-                    name:  parts[parts.length - 1].trim(),
-                    hex:   hex,
-                  });
-                } catch (e2) {}
-              }
+            var libCols;
+            if (msg.collectionKeys && msg.collectionKeys.length) {
+              // Caller already knows which collections belong to this library
+              // (from the earlier get-libraries response) — skip re-fetching
+              // the full team-library list, that round trip is the slow part.
+              libCols = msg.collectionKeys.map(function (k) { return { key: k }; });
+            } else {
+              var collections = await figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync();
+              libCols = collections.filter(function (c) {
+                return (c.libraryName || c.name) === msg.name || c.key === msg.key;
+              });
             }
+
+            var varLists = await Promise.all(libCols.map(function (lc) {
+              return figma.teamLibrary.getVariablesInLibraryCollectionAsync(lc.key).catch(function () { return []; });
+            }));
+
+            var allVars = [];
+            varLists.forEach(function (vars) {
+              vars.forEach(function (v) { if (v.resolvedType === 'COLOR') allVars.push(v); });
+            });
+
+            // Import every variable concurrently instead of one await per
+            // variable — sequential imports were the main cause of slow loads
+            // on libraries with a lot of color variables.
+            var imports = await Promise.all(allVars.map(function (v) {
+              return figma.variables.importVariableByKeyAsync(v.key)
+                .then(function (imported) { return { v: v, imported: imported }; })
+                .catch(function () { return null; });
+            }));
+
+            imports.forEach(function (entry) {
+              if (!entry) return;
+              var modeId = Object.keys(entry.imported.valuesByMode)[0];
+              var val    = entry.imported.valuesByMode[modeId];
+              if (!val || typeof val !== 'object' || !('r' in val)) return;
+              var hex   = rgbToHex(val.r, val.g, val.b);
+              var parts = entry.v.name.split('/');
+              colors.push({
+                group: parts.length > 1 ? parts.slice(0, -1).join('/') : msg.name,
+                name:  parts[parts.length - 1].trim(),
+                hex:   hex,
+              });
+            });
           } catch (e) {}
           _sortColors(colors);
-          figma.ui.postMessage({ type: 'lib-colors', colors: colors });
+          figma.ui.postMessage({ type: 'lib-colors', colors: colors, key: msg.key, name: msg.name });
         }
       })();
       break;
@@ -3763,7 +3928,7 @@ figma.ui.onmessage = function (msg) {
         await applyCanvasToFigma(
           msg.frameId, msg.cells, msg.cols, msg.rows,
           msg.cellSize, msg.gap, msg.createNew === true,
-          msg.cornerRadiusPct || 0
+          msg.cornerRadiusPct || 0, msg.shape
         );
       })();
       break;

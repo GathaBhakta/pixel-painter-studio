@@ -412,36 +412,56 @@ function initLibraryPanel() {
   document.addEventListener('click', function () { menu.classList.remove('open'); });
 }
 
+// Cache of the most recent lib-colors response, so the empty-state message
+// can be corrected once `libraries` arrives (it's a separate, slower async
+// round-trip than the local-color read, so it often lands second).
+var _lastLibColors = null;
+var _lastLibKey     = '__local__';
+var _lastLibName    = '__local__';
+
 function handleLibraries(libs) {
   _availableLibs = libs || [];
   var menu = document.getElementById('lib-menu');
-  if (!menu) return;
-  menu.innerHTML = '';
+  if (menu) {
+    menu.innerHTML = '';
 
-  function _makeItem(label, key, name) {
-    var item = document.createElement('div');
-    item.className   = 'lib-menu-item';
-    item.textContent = label;
-    item.addEventListener('click', function () {
-      document.getElementById('lib-name').textContent = label;
-      menu.classList.remove('open');
-      var empty = document.getElementById('lib-empty');
-      var grid  = document.getElementById('lib-swatch-grid');
-      if (empty) { empty.style.display = ''; empty.textContent = 'Loading…'; }
-      if (grid)  grid.innerHTML = '';
-      postMsg({ type: 'load-lib-colors', key: key, name: name });
-    });
-    menu.appendChild(item);
+    function _makeItem(label, key, name, collectionKeys) {
+      var item = document.createElement('div');
+      item.className   = 'lib-menu-item';
+      item.textContent = label;
+      item.addEventListener('click', function () {
+        document.getElementById('lib-name').textContent = label;
+        menu.classList.remove('open');
+        var empty = document.getElementById('lib-empty');
+        var grid  = document.getElementById('lib-swatch-grid');
+        if (empty) { empty.style.display = ''; empty.textContent = 'Loading…'; }
+        if (grid)  grid.innerHTML = '';
+        postMsg({ type: 'load-lib-colors', key: key, name: name, collectionKeys: collectionKeys });
+      });
+      menu.appendChild(item);
+    }
+
+    _makeItem('Local styles & variables', '__local__', '__local__');
+    libs.forEach(function (lib) { _makeItem(lib.name, lib.key, lib.name, lib.collections); });
   }
 
-  _makeItem('Local styles & variables', '__local__', '__local__');
-  libs.forEach(function (lib) { _makeItem(lib.name, lib.key, lib.name); });
+  // If we already rendered an empty state for local colors before this
+  // library list arrived, re-render now that we know whether libraries exist.
+  if (_lastLibKey === '__local__' && _lastLibColors && !_lastLibColors.length) {
+    handleLibColors(_lastLibColors, _lastLibKey, _lastLibName);
+  }
 }
 
-function handleLibColors(colors) {
+function handleLibColors(colors, key, name) {
   var grid  = document.getElementById('lib-swatch-grid');
   var empty = document.getElementById('lib-empty');
   if (!grid) return;
+
+  key = key || '__local__';
+  _lastLibColors = colors || [];
+  _lastLibKey    = key;
+  _lastLibName   = name || key;
+
   if (empty) empty.style.display = 'none';
   grid.innerHTML = '';
 
@@ -455,7 +475,27 @@ function handleLibColors(colors) {
       empty.innerHTML = '';
       empty.style.display = 'block';
       empty.className = 'lib-empty-state';
-      if (_availableLibs.length > 0) {
+
+      if (key !== '__local__') {
+        // Figma's plugin API can only enumerate Variables from a library,
+        // not classic Color Styles — this is a platform limitation, not a bug.
+        var lmsg1 = document.createElement('p');
+        lmsg1.className = 'hint'; lmsg1.textContent = 'No color variables found in "' + name + '".';
+        var lmsg2 = document.createElement('p');
+        lmsg2.className = 'hint';
+        lmsg2.textContent = 'If this library publishes classic Color Styles instead of Variables, plugins can’t read them — that’s a Figma API limitation.';
+        empty.appendChild(lmsg1); empty.appendChild(lmsg2);
+        var backBtn = document.createElement('button');
+        backBtn.className = 'btn-small btn-ghost lib-switch-btn';
+        backBtn.textContent = 'Back to Local styles & variables';
+        backBtn.addEventListener('click', function () {
+          document.getElementById('lib-name').textContent = 'Local styles & variables';
+          if (empty) { empty.style.display = ''; empty.textContent = 'Loading…'; }
+          grid.innerHTML = '';
+          postMsg({ type: 'load-lib-colors', key: '__local__', name: '__local__' });
+        });
+        empty.appendChild(backBtn);
+      } else if (_availableLibs.length > 0) {
         var msg1 = document.createElement('p');
         msg1.className = 'hint'; msg1.textContent = 'No local styles available.';
         var msg2 = document.createElement('p');
@@ -467,7 +507,9 @@ function handleLibColors(colors) {
           btn.textContent = lib.name;
           btn.addEventListener('click', function () {
             document.getElementById('lib-name').textContent = lib.name;
-            postMsg({ type: 'load-lib-colors', key: lib.key, name: lib.name });
+            if (empty) { empty.style.display = ''; empty.textContent = 'Loading…'; }
+            grid.innerHTML = '';
+            postMsg({ type: 'load-lib-colors', key: lib.key, name: lib.name, collectionKeys: lib.collections });
           });
           empty.appendChild(btn);
         });
@@ -770,7 +812,7 @@ function initSetupTab() {
         // Apply current art to a new frame before wiping the grid
         postMsg({ type: 'apply-to-figma', cells: state.cells,
           cols: state.cols, rows: state.rows, cellSize: state.cellSize, gap: state.gap,
-          cornerRadiusPct: _cellRadiusPct, createNew: true });
+          cornerRadiusPct: _cellRadiusPct, shape: _cellShapeMode, createNew: true });
         showToast('Saving art then re-gridding…');
       } else {
         showToast('Re-gridding frame…');
@@ -802,6 +844,8 @@ function updateGridCalc() {
 
 // ── Cell shape section ────────────────────────────────────────────────────────
 
+var _cellShapeMode = 'radius'; // 'radius' | 'cross' — read by Apply handlers
+
 function initShapeSection() {
   var slider  = document.getElementById('cell-radius-slider');
   var valEl   = document.getElementById('shape-val');
@@ -815,14 +859,26 @@ function initShapeSection() {
     return 'Pill';
   }
 
+  function _setActivePreset(matchFn) {
+    presets.forEach(function (b) { b.classList.toggle('active', matchFn(b)); });
+  }
+
   function _applyRadius(pct) {
+    _cellShapeMode = 'radius';
     _cellRadiusPct = pct;
-    if (slider) slider.value = pct;
+    if (slider) { slider.disabled = false; slider.value = pct; }
     if (valEl)  valEl.textContent = _radiusLabel(pct);
-    presets.forEach(function (b) {
-      b.classList.toggle('active', +b.dataset.radius === pct);
-    });
+    _setActivePreset(function (b) { return !b.dataset.shape && +b.dataset.radius === pct; });
+    if (typeof setCellShapeMode === 'function') setCellShapeMode('radius');
     if (typeof setCellRadius === 'function') setCellRadius(pct);
+  }
+
+  function _applyCrossShape() {
+    _cellShapeMode = 'cross';
+    if (slider) slider.disabled = true;
+    if (valEl)  valEl.textContent = 'Cross-stitch';
+    _setActivePreset(function (b) { return b.dataset.shape === 'cross'; });
+    if (typeof setCellShapeMode === 'function') setCellShapeMode('cross');
   }
 
   if (slider) {
@@ -830,7 +886,10 @@ function initShapeSection() {
   }
 
   presets.forEach(function (b) {
-    b.addEventListener('click', function () { _applyRadius(+b.dataset.radius); });
+    b.addEventListener('click', function () {
+      if (b.dataset.shape === 'cross') _applyCrossShape();
+      else _applyRadius(+b.dataset.radius);
+    });
   });
 
   _applyRadius(0); // default: square
@@ -846,7 +905,7 @@ function initApplyButtons() {
     if (!targetId) { showToast('Select a pixel canvas in Figma first'); return; }
     postMsg({ type: 'apply-to-figma', frameId: targetId, cells: state.cells,
       cols: state.cols, rows: state.rows, cellSize: state.cellSize, gap: state.gap,
-      cornerRadiusPct: _cellRadiusPct, createNew: false });
+      cornerRadiusPct: _cellRadiusPct, shape: _cellShapeMode, createNew: false });
     showToast('Applying to Figma…');
   });
 
@@ -855,7 +914,7 @@ function initApplyButtons() {
     if (!state) { showToast('Paint something first'); return; }
     postMsg({ type: 'apply-to-figma', cells: state.cells,
       cols: state.cols, rows: state.rows, cellSize: state.cellSize, gap: state.gap,
-      cornerRadiusPct: _cellRadiusPct, createNew: true });
+      cornerRadiusPct: _cellRadiusPct, shape: _cellShapeMode, createNew: true });
     showToast('Creating new frame…');
   });
 }
@@ -1112,7 +1171,7 @@ window.onmessage = function (ev) {
       break;
 
     case 'lib-colors':
-      handleLibColors(m.colors || []);
+      handleLibColors(m.colors || [], m.key, m.name);
       break;
 
     case 'custom-palette':
