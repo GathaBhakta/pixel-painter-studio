@@ -33,7 +33,7 @@ Pixel Painter Studio moves the painting surface into an HTML canvas inside the p
 Draw a frame in Figma → Select it → Fill Frame → Paint → Apply
 ```
 
-The plugin window resizes to match your frame's aspect ratio. Painted cells write back to Figma as named `px_NN_NN` layers (rectangles, or vectors for the cross-stitch shape). From there, use Figma's native tools — export as SVG, flatten, apply effects.
+The plugin window resizes to match your frame's aspect ratio. Painted cells write back into a single `Pixel Painter` layer inside your frame, as named `px_NN_NN` nodes (rectangles, or vectors for the cross-stitch shape) — so any background fill, image, or other layers you set on the frame stay put. From there, use Figma's native tools — export as SVG, flatten, apply effects.
 
 ---
 

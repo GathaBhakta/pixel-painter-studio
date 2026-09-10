@@ -123,7 +123,9 @@ function _doArmColor(hex, name) {
   var prev = document.getElementById('picker-preview');
   if (prev) prev.style.background = hex;
 
-  _addToRecent(hex);
+  // Note: recent colors are added when a color is actually painted to the
+  // canvas (see canvas.js _onCellPainted / _floodFill / _commitShape), not
+  // when it is merely armed — arming fires on every HSB-picker drag step.
 }
 
 // Public armColor: also syncs the HSB picker (avoids loop via _pickerUpdating)
