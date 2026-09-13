@@ -501,6 +501,35 @@ function _rectCells(r0, c0, r1, c1) {
   return out;
 }
 
+function _lineCells(r0, c0, r1, c1) {
+  var out = [];
+  var dr = Math.abs(r1 - r0), dc = Math.abs(c1 - c0);
+  var sr = r0 < r1 ? 1 : -1, sc = c0 < c1 ? 1 : -1;
+  var err = dr - dc;
+  while (true) {
+    out.push([r0, c0]);
+    if (r0 === r1 && c0 === c1) break;
+    var e2 = 2 * err;
+    if (e2 > -dc) { err -= dc; r0 += sr; }
+    if (e2 <  dr) { err += dr; c0 += sc; }
+  }
+  return out;
+}
+
+// Shift-snap a line to the nearest 45° increment, keeping the start point fixed
+function _constrainLineAngle(r0, c0, r1, c1) {
+  var dr = r1 - r0, dc = c1 - c0;
+  if (dr === 0 && dc === 0) return { r0: r0, c0: c0, r1: r1, c1: c1 };
+  var angle = Math.atan2(dr, dc);
+  var snapped = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+  var dist = Math.round(Math.sqrt(dr * dr + dc * dc));
+  return {
+    r0: r0, c0: c0,
+    r1: r0 + Math.round(Math.sin(snapped) * dist),
+    c1: c0 + Math.round(Math.cos(snapped) * dist),
+  };
+}
+
 function _ovalCells(r0, c0, r1, c1) {
   var minR = Math.min(r0, r1), maxR = Math.max(r0, r1);
   var minC = Math.min(c0, c1), maxC = Math.max(c0, c1);
@@ -522,6 +551,43 @@ function _ovalCells(r0, c0, r1, c1) {
   return out;
 }
 
+// Mirrors a cell list across the active symmetry axes (see _paintAt for the
+// equivalent per-cell mirroring used by pen/eraser strokes)
+function _mirrorCells(cells) {
+  if (_symmetry === 'none') return cells;
+  var seen = {};
+  var out = [];
+  function add(r, c) {
+    var key = r + ',' + c;
+    if (seen[key]) return;
+    seen[key] = true;
+    out.push([r, c]);
+  }
+  cells.forEach(function (cell) {
+    var r = cell[0], c = cell[1];
+    var mirC = _cols - 1 - c, mirR = _rows - 1 - r;
+    add(r, c);
+    if (_symmetry === 'H' || _symmetry === '4') add(r,    mirC);
+    if (_symmetry === 'V' || _symmetry === '4') add(mirR, c);
+    if (_symmetry === '4')                       add(mirR, mirC);
+  });
+  return out;
+}
+
+function _shapeCells(tool, r0, c0, r1, c1, shiftKey) {
+  var cells;
+  if (tool === 'line') {
+    var lc = shiftKey ? _constrainLineAngle(r0, c0, r1, c1) : { r0: r0, c0: c0, r1: r1, c1: c1 };
+    cells = _lineCells(lc.r0, lc.c0, lc.r1, lc.c1);
+  } else {
+    var coords = shiftKey ? _constrainSquare(r0, c0, r1, c1) : { r0: r0, c0: c0, r1: r1, c1: c1 };
+    cells = tool === 'oval'
+      ? _ovalCells(coords.r0, coords.c0, coords.r1, coords.c1)
+      : _rectCells(coords.r0, coords.c0, coords.r1, coords.c1);
+  }
+  return _mirrorCells(cells);
+}
+
 // ── Preview canvas ────────────────────────────────────────────────────────────
 
 function _clearPreview() {
@@ -534,10 +600,7 @@ function _drawShapePreview(r0, c0, r1, c1, shiftKey) {
   _clearPreview();
   var tool  = (typeof _activeTool !== 'undefined') ? _activeTool : 'rect';
   var color = (typeof _armedColor  !== 'undefined') ? _armedColor : null;
-  var coords = shiftKey ? _constrainSquare(r0, c0, r1, c1) : { r0: r0, c0: c0, r1: r1, c1: c1 };
-  var cells = tool === 'oval'
-    ? _ovalCells(coords.r0, coords.c0, coords.r1, coords.c1)
-    : _rectCells(coords.r0, coords.c0, coords.r1, coords.c1);
+  var cells = _shapeCells(tool, r0, c0, r1, c1, shiftKey);
 
   _previewCtx.save();
   if (color) {
@@ -585,10 +648,7 @@ function _floodFill(startRow, startCol, fillColor) {
 function _commitShape(r0, c0, r1, c1, shiftKey) {
   var tool  = (typeof _activeTool !== 'undefined') ? _activeTool : 'rect';
   var color = (typeof _armedColor  !== 'undefined') ? _armedColor : null;
-  var coords = shiftKey ? _constrainSquare(r0, c0, r1, c1) : { r0: r0, c0: c0, r1: r1, c1: c1 };
-  var cells = tool === 'oval'
-    ? _ovalCells(coords.r0, coords.c0, coords.r1, coords.c1)
-    : _rectCells(coords.r0, coords.c0, coords.r1, coords.c1);
+  var cells = _shapeCells(tool, r0, c0, r1, c1, shiftKey);
 
   cells.forEach(function (cell) {
     var r = cell[0], c = cell[1];
@@ -695,7 +755,7 @@ function _onCanvasMouseDown(e) {
     return;
   }
 
-  if (tool === 'rect' || tool === 'oval') {
+  if (tool === 'rect' || tool === 'oval' || tool === 'line') {
     _shapeActive   = true;
     _shapeStart    = pos;
     _shapeEnd      = pos;

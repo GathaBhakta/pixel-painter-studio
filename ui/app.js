@@ -1097,6 +1097,7 @@ function initKeyboard() {
     if (e.key === 'b' || e.key === 'B') setActiveTool('bucket');
     if (e.key === 'r' || e.key === 'R') setActiveTool('rect');
     if (e.key === 'o' || e.key === 'O') setActiveTool('oval');
+    if (e.key === 'l' || e.key === 'L') setActiveTool('line');
     if (e.key === 'w' || e.key === 'W') setActiveTool('wand');
     if (e.key === 'Escape') { _exitSelMode(); }
 

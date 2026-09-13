@@ -983,6 +983,10 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:13px; h
     <svg viewBox="0 0 16 16" stroke-width="1.3" fill="none"><ellipse cx="8" cy="8" rx="5.5" ry="4"/></svg>
     <span>Oval</span>
   </button>
+  <button class="tool-btn" id="tool-line" data-tool="line" title="Line (L)  ·  Shift = 45&deg; snap">
+    <svg viewBox="0 0 16 16" stroke-width="1.3" stroke-linecap="round"><line x1="3" y1="13" x2="13" y2="3"/></svg>
+    <span>Line</span>
+  </button>
   <button class="tool-btn" id="tool-wand" data-tool="wand" title="Select by color (W)">
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
       <rect x="1.5" y="1.5" width="9" height="9" rx="0.5" stroke-dasharray="2.5,1.8"/>
@@ -1762,6 +1766,35 @@ function _rectCells(r0, c0, r1, c1) {
   return out;
 }
 
+function _lineCells(r0, c0, r1, c1) {
+  var out = [];
+  var dr = Math.abs(r1 - r0), dc = Math.abs(c1 - c0);
+  var sr = r0 < r1 ? 1 : -1, sc = c0 < c1 ? 1 : -1;
+  var err = dr - dc;
+  while (true) {
+    out.push([r0, c0]);
+    if (r0 === r1 && c0 === c1) break;
+    var e2 = 2 * err;
+    if (e2 > -dc) { err -= dc; r0 += sr; }
+    if (e2 <  dr) { err += dr; c0 += sc; }
+  }
+  return out;
+}
+
+// Shift-snap a line to the nearest 45° increment, keeping the start point fixed
+function _constrainLineAngle(r0, c0, r1, c1) {
+  var dr = r1 - r0, dc = c1 - c0;
+  if (dr === 0 && dc === 0) return { r0: r0, c0: c0, r1: r1, c1: c1 };
+  var angle = Math.atan2(dr, dc);
+  var snapped = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+  var dist = Math.round(Math.sqrt(dr * dr + dc * dc));
+  return {
+    r0: r0, c0: c0,
+    r1: r0 + Math.round(Math.sin(snapped) * dist),
+    c1: c0 + Math.round(Math.cos(snapped) * dist),
+  };
+}
+
 function _ovalCells(r0, c0, r1, c1) {
   var minR = Math.min(r0, r1), maxR = Math.max(r0, r1);
   var minC = Math.min(c0, c1), maxC = Math.max(c0, c1);
@@ -1783,6 +1816,43 @@ function _ovalCells(r0, c0, r1, c1) {
   return out;
 }
 
+// Mirrors a cell list across the active symmetry axes (see _paintAt for the
+// equivalent per-cell mirroring used by pen/eraser strokes)
+function _mirrorCells(cells) {
+  if (_symmetry === 'none') return cells;
+  var seen = {};
+  var out = [];
+  function add(r, c) {
+    var key = r + ',' + c;
+    if (seen[key]) return;
+    seen[key] = true;
+    out.push([r, c]);
+  }
+  cells.forEach(function (cell) {
+    var r = cell[0], c = cell[1];
+    var mirC = _cols - 1 - c, mirR = _rows - 1 - r;
+    add(r, c);
+    if (_symmetry === 'H' || _symmetry === '4') add(r,    mirC);
+    if (_symmetry === 'V' || _symmetry === '4') add(mirR, c);
+    if (_symmetry === '4')                       add(mirR, mirC);
+  });
+  return out;
+}
+
+function _shapeCells(tool, r0, c0, r1, c1, shiftKey) {
+  var cells;
+  if (tool === 'line') {
+    var lc = shiftKey ? _constrainLineAngle(r0, c0, r1, c1) : { r0: r0, c0: c0, r1: r1, c1: c1 };
+    cells = _lineCells(lc.r0, lc.c0, lc.r1, lc.c1);
+  } else {
+    var coords = shiftKey ? _constrainSquare(r0, c0, r1, c1) : { r0: r0, c0: c0, r1: r1, c1: c1 };
+    cells = tool === 'oval'
+      ? _ovalCells(coords.r0, coords.c0, coords.r1, coords.c1)
+      : _rectCells(coords.r0, coords.c0, coords.r1, coords.c1);
+  }
+  return _mirrorCells(cells);
+}
+
 // ── Preview canvas ────────────────────────────────────────────────────────────
 
 function _clearPreview() {
@@ -1795,10 +1865,7 @@ function _drawShapePreview(r0, c0, r1, c1, shiftKey) {
   _clearPreview();
   var tool  = (typeof _activeTool !== 'undefined') ? _activeTool : 'rect';
   var color = (typeof _armedColor  !== 'undefined') ? _armedColor : null;
-  var coords = shiftKey ? _constrainSquare(r0, c0, r1, c1) : { r0: r0, c0: c0, r1: r1, c1: c1 };
-  var cells = tool === 'oval'
-    ? _ovalCells(coords.r0, coords.c0, coords.r1, coords.c1)
-    : _rectCells(coords.r0, coords.c0, coords.r1, coords.c1);
+  var cells = _shapeCells(tool, r0, c0, r1, c1, shiftKey);
 
   _previewCtx.save();
   if (color) {
@@ -1846,10 +1913,7 @@ function _floodFill(startRow, startCol, fillColor) {
 function _commitShape(r0, c0, r1, c1, shiftKey) {
   var tool  = (typeof _activeTool !== 'undefined') ? _activeTool : 'rect';
   var color = (typeof _armedColor  !== 'undefined') ? _armedColor : null;
-  var coords = shiftKey ? _constrainSquare(r0, c0, r1, c1) : { r0: r0, c0: c0, r1: r1, c1: c1 };
-  var cells = tool === 'oval'
-    ? _ovalCells(coords.r0, coords.c0, coords.r1, coords.c1)
-    : _rectCells(coords.r0, coords.c0, coords.r1, coords.c1);
+  var cells = _shapeCells(tool, r0, c0, r1, c1, shiftKey);
 
   cells.forEach(function (cell) {
     var r = cell[0], c = cell[1];
@@ -1956,7 +2020,7 @@ function _onCanvasMouseDown(e) {
     return;
   }
 
-  if (tool === 'rect' || tool === 'oval') {
+  if (tool === 'rect' || tool === 'oval' || tool === 'line') {
     _shapeActive   = true;
     _shapeStart    = pos;
     _shapeEnd      = pos;
@@ -3280,6 +3344,7 @@ function initKeyboard() {
     if (e.key === 'b' || e.key === 'B') setActiveTool('bucket');
     if (e.key === 'r' || e.key === 'R') setActiveTool('rect');
     if (e.key === 'o' || e.key === 'O') setActiveTool('oval');
+    if (e.key === 'l' || e.key === 'L') setActiveTool('line');
     if (e.key === 'w' || e.key === 'W') setActiveTool('wand');
     if (e.key === 'Escape') { _exitSelMode(); }
 
