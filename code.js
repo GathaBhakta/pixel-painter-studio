@@ -1934,6 +1934,7 @@ function _onCellPainted(row, col, hex) {
 
 function _onCanvasMouseDown(e) {
   if (_spaceHeld || e.button !== 0) return;
+  window.focus(); // reclaim keyboard focus from the Figma app so Ctrl+Z/Ctrl+Y hit the plugin, not the main canvas
   var pos  = _cellFromEvent(e);
   var tool = (typeof _activeTool !== 'undefined') ? _activeTool : 'pen';
 
@@ -1978,6 +1979,7 @@ function _onCanvasMouseDown(e) {
 
 function _onScrollMouseDown(e) {
   if (!_spaceHeld || e.button !== 0) return;
+  window.focus();
   _isPanning = true;
   _panLastX  = e.clientX;
   _panLastY  = e.clientY;
@@ -2943,6 +2945,7 @@ function initThumbCollapse() {
 
 function enterPaintMode() {
   document.body.classList.add('mode-paint');
+  window.focus(); // claim keyboard focus so Ctrl+Z/Ctrl+Y and tool hotkeys hit the plugin, not Figma
 }
 
 function exitPaintMode() {
@@ -3294,10 +3297,10 @@ function initKeyboard() {
     }
 
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
-      e.preventDefault(); undoCanvas();
+      e.preventDefault(); e.stopPropagation(); undoCanvas();
     }
     if ((e.ctrlKey || e.metaKey) && (e.shiftKey && e.key === 'Z' || e.key === 'y')) {
-      e.preventDefault(); redoCanvas();
+      e.preventDefault(); e.stopPropagation(); redoCanvas();
     }
 
     // Zoom

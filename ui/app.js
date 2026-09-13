@@ -762,6 +762,7 @@ function initThumbCollapse() {
 
 function enterPaintMode() {
   document.body.classList.add('mode-paint');
+  window.focus(); // claim keyboard focus so Ctrl+Z/Ctrl+Y and tool hotkeys hit the plugin, not Figma
 }
 
 function exitPaintMode() {
@@ -1113,10 +1114,10 @@ function initKeyboard() {
     }
 
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
-      e.preventDefault(); undoCanvas();
+      e.preventDefault(); e.stopPropagation(); undoCanvas();
     }
     if ((e.ctrlKey || e.metaKey) && (e.shiftKey && e.key === 'Z' || e.key === 'y')) {
-      e.preventDefault(); redoCanvas();
+      e.preventDefault(); e.stopPropagation(); redoCanvas();
     }
 
     // Zoom
