@@ -123,7 +123,9 @@ function _doArmColor(hex, name) {
   var prev = document.getElementById('picker-preview');
   if (prev) prev.style.background = hex;
 
-  _addToRecent(hex);
+  // Note: recent colors are added when a color is actually painted to the
+  // canvas (see canvas.js _onCellPainted / _floodFill / _commitShape), not
+  // when it is merely armed — arming fires on every HSB-picker drag step.
 }
 
 // Public armColor: also syncs the HSB picker (avoids loop via _pickerUpdating)
@@ -760,6 +762,7 @@ function initThumbCollapse() {
 
 function enterPaintMode() {
   document.body.classList.add('mode-paint');
+  window.focus(); // claim keyboard focus so Ctrl+Z/Ctrl+Y and tool hotkeys hit the plugin, not Figma
 }
 
 function exitPaintMode() {
@@ -1111,10 +1114,10 @@ function initKeyboard() {
     }
 
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
-      e.preventDefault(); undoCanvas();
+      e.preventDefault(); e.stopPropagation(); undoCanvas();
     }
     if ((e.ctrlKey || e.metaKey) && (e.shiftKey && e.key === 'Z' || e.key === 'y')) {
-      e.preventDefault(); redoCanvas();
+      e.preventDefault(); e.stopPropagation(); redoCanvas();
     }
 
     // Zoom

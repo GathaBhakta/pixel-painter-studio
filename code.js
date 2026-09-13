@@ -1934,6 +1934,7 @@ function _onCellPainted(row, col, hex) {
 
 function _onCanvasMouseDown(e) {
   if (_spaceHeld || e.button !== 0) return;
+  window.focus(); // reclaim keyboard focus from the Figma app so Ctrl+Z/Ctrl+Y hit the plugin, not the main canvas
   var pos  = _cellFromEvent(e);
   var tool = (typeof _activeTool !== 'undefined') ? _activeTool : 'pen';
 
@@ -1978,6 +1979,7 @@ function _onCanvasMouseDown(e) {
 
 function _onScrollMouseDown(e) {
   if (!_spaceHeld || e.button !== 0) return;
+  window.focus();
   _isPanning = true;
   _panLastX  = e.clientX;
   _panLastY  = e.clientY;
@@ -2304,7 +2306,9 @@ function _doArmColor(hex, name) {
   var prev = document.getElementById('picker-preview');
   if (prev) prev.style.background = hex;
 
-  _addToRecent(hex);
+  // Note: recent colors are added when a color is actually painted to the
+  // canvas (see canvas.js _onCellPainted / _floodFill / _commitShape), not
+  // when it is merely armed — arming fires on every HSB-picker drag step.
 }
 
 // Public armColor: also syncs the HSB picker (avoids loop via _pickerUpdating)
@@ -2941,6 +2945,7 @@ function initThumbCollapse() {
 
 function enterPaintMode() {
   document.body.classList.add('mode-paint');
+  window.focus(); // claim keyboard focus so Ctrl+Z/Ctrl+Y and tool hotkeys hit the plugin, not Figma
 }
 
 function exitPaintMode() {
@@ -3292,10 +3297,10 @@ function initKeyboard() {
     }
 
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
-      e.preventDefault(); undoCanvas();
+      e.preventDefault(); e.stopPropagation(); undoCanvas();
     }
     if ((e.ctrlKey || e.metaKey) && (e.shiftKey && e.key === 'Z' || e.key === 'y')) {
-      e.preventDefault(); redoCanvas();
+      e.preventDefault(); e.stopPropagation(); redoCanvas();
     }
 
     // Zoom
@@ -3475,6 +3480,77 @@ function setConfig(frame, cfg) {
   frame.setSharedPluginData(PLUGIN_KEY, 'config', JSON.stringify(cfg));
 }
 
+// ── Paint layer ───────────────────────────────────────────────────────────────
+// Every plugin-created node (grid cells, painted cells, trace guides) lives in
+// one child frame inside the target frame. The plugin only ever touches this
+// layer, so the user's own background fill / image / other layers survive
+// Fill Frame and Apply untouched. One wrapper node, nothing else added.
+
+var LAYER_TAG = 'pixelLayer';
+
+function isPaintLayer(node) {
+  return node && node.type === 'FRAME' &&
+    node.getSharedPluginData(PLUGIN_KEY, LAYER_TAG) === 'true';
+}
+
+function findPaintLayer(frame) {
+  var kids = frame.children;
+  for (var i = 0; i < kids.length; i++) {
+    if (isPaintLayer(kids[i])) return kids[i];
+  }
+  return null;
+}
+
+// True when the frame has a deliberate background of its own behind the paint
+// layer — an image/gradient fill, a non-white solid fill, or any other layer.
+// A plain white (default) frame fill doesn't count.
+function frameHasOwnBackground(frame) {
+  var f = frame.fills;
+  if (f && f !== figma.mixed) {
+    for (var i = 0; i < f.length; i++) {
+      var p = f[i];
+      if (p.visible === false) continue;
+      if (p.type !== 'SOLID') return true; // image / gradient / video
+      var op = (p.opacity === undefined) ? 1 : p.opacity;
+      if (op <= 0.001) continue;
+      var nearWhite = p.color.r > 0.97 && p.color.g > 0.97 && p.color.b > 0.97;
+      if (nearWhite && op > 0.99) continue;
+      return true;
+    }
+  }
+  return frame.children.some(function (c) { return !isPaintLayer(c); });
+}
+
+// Get (creating if needed) the plugin's paint layer for `frame`. Migrates
+// canvases from older builds where cells were loose children of the frame.
+function ensurePaintLayer(frame) {
+  var w = Math.max(1, Math.round(frame.width));
+  var h = Math.max(1, Math.round(frame.height));
+  var layer = findPaintLayer(frame);
+
+  if (!layer) {
+    layer = figma.createFrame();
+    layer.name = 'Pixel Painter';
+    layer.setSharedPluginData(PLUGIN_KEY, LAYER_TAG, 'true');
+    layer.fills = [];
+    layer.clipsContent = true;
+    layer.resize(w, h);
+    frame.appendChild(layer);
+    layer.x = 0; layer.y = 0;
+    // Pull loose cells / traces from an older version into the layer.
+    frame.children.slice().forEach(function (c) {
+      if (c !== layer && (isCell(c) || (c.name && c.name.indexOf('trace_') === 0))) {
+        layer.appendChild(c);
+      }
+    });
+  } else {
+    layer.resize(w, h);
+    layer.x = 0; layer.y = 0;
+  }
+  layer.expanded = false;
+  return layer;
+}
+
 function _sortColors(arr) {
   arr.sort(function (a, b) {
     var ga = a.group.toLowerCase(), gb = b.group.toLowerCase();
@@ -3488,26 +3564,32 @@ function _sortColors(arr) {
 // ── Selection probe ───────────────────────────────────────────────────────────
 
 function probeSelection() {
-  var sel = figma.currentPage.selection;
+  var sel  = figma.currentPage.selection;
+  var node = sel.length === 1 ? sel[0] : null;
 
-  if (sel.length === 1 && isCanvas(sel[0])) {
-    var cfg = getConfig(sel[0]) || {};
+  // Selecting the plugin's paint layer counts as selecting its host frame.
+  if (node && isPaintLayer(node) && node.parent && node.parent.type === 'FRAME') {
+    node = node.parent;
+  }
+
+  if (node && isCanvas(node)) {
+    var cfg = getConfig(node) || {};
     figma.ui.postMessage({
       type: 'selection', mode: 'canvas',
-      id: sel[0].id,
-      name: sel[0].name,
+      id: node.id,
+      name: node.name,
       cols: cfg.cols || 0, rows: cfg.rows || 0, cellSize: cfg.cellSize || 16,
       gap: cfg.gap !== undefined ? cfg.gap : 1,
-      width: Math.round(sel[0].width), height: Math.round(sel[0].height),
+      width: Math.round(node.width), height: Math.round(node.height),
     });
     return;
   }
 
-  if (sel.length === 1 && sel[0].type === 'FRAME' && !isCanvas(sel[0])) {
+  if (node && node.type === 'FRAME' && !isCanvas(node)) {
     figma.ui.postMessage({
       type: 'selection', mode: 'frame',
-      frameId: sel[0].id, name: sel[0].name,
-      width: Math.round(sel[0].width), height: Math.round(sel[0].height),
+      frameId: node.id, name: node.name,
+      width: Math.round(node.width), height: Math.round(node.height),
     });
     return;
   }
@@ -3557,11 +3639,15 @@ async function fillFrame(frameId, cellSize, gap) {
   var offsetY = Math.max(0, Math.round((H - gridH) / 2));
 
   filling = true;
-  frame.children.slice().forEach(function (c) { c.remove(); });
   frame.setSharedPluginData(PLUGIN_KEY, CANVAS_TAG, 'true');
-  frame.fills = solidFill('#F2EDE4');
-  frame.clipsContent = true;
   setConfig(frame, { cols: cols, rows: rows, cellSize: cellSize, gap: gap, offsetX: offsetX, offsetY: offsetY });
+
+  // Rebuild only the plugin's own layer — the frame's background and any other
+  // layers the user added stay exactly as they are.
+  var layer = ensurePaintLayer(frame);
+  layer.children.slice().forEach(function (c) { c.remove(); });
+  // Paper ground only when there's nothing of the user's own behind it.
+  layer.fills = frameHasOwnBackground(frame) ? [] : solidFill('#F2EDE4');
 
   for (var r = 0; r < rows; r++) {
     for (var c = 0; c < cols; c++) {
@@ -3578,7 +3664,7 @@ async function fillFrame(frameId, cellSize, gap) {
       } else {
         cell.strokes = [];
       }
-      frame.appendChild(cell);
+      layer.appendChild(cell);
     }
   }
 
@@ -3617,7 +3703,9 @@ async function openCanvas(frameId) {
   var cells = [];
   for (var r = 0; r < rows; r++) { cells.push(new Array(cols).fill(null)); }
 
-  frame.children.forEach(function (child) {
+  // Cells live in the paint layer; older canvases kept them loose on the frame.
+  var host = findPaintLayer(frame) || frame;
+  host.children.forEach(function (child) {
     var m = child.name && child.name.match(/^px_(\d+)_(\d+)$/);
     if (!m) return;
     var col = parseInt(m[1], 10) - 1;
@@ -3660,11 +3748,11 @@ async function applyCanvasToFigma(frameId, cells, cols, rows, cellSize, gap, cre
 
   if (createNew) {
     frame = figma.createFrame();
-    var stride  = cellSize + gap;
-    frame.resize(cols * stride - gap, rows * stride - gap);
+    frame.resize(cols * (cellSize + gap) - gap, rows * (cellSize + gap) - gap);
     frame.name  = 'Pixel Canvas';
     frame.x     = figma.viewport.center.x;
     frame.y     = figma.viewport.center.y;
+    frame.fills = []; // brand-new frame: just the pixels, nothing behind them
     figma.currentPage.appendChild(frame);
     // Brand-new frame is sized to fit the grid exactly, so no centering offset needed.
   } else {
@@ -3676,19 +3764,19 @@ async function applyCanvasToFigma(frameId, cells, cols, rows, cellSize, gap, cre
     // Preserve the centering offset fillFrame originally computed for this frame.
     var existingCfg = getConfig(frame);
     if (existingCfg) { offsetX = existingCfg.offsetX || 0; offsetY = existingCfg.offsetY || 0; }
-    // Remove old paint cells (keep trace_ cells)
-    frame.children.slice().forEach(function (c) {
-      if (isCell(c)) c.remove();
-    });
   }
 
   var stride = cellSize + gap;
   filling    = true;
 
   frame.setSharedPluginData(PLUGIN_KEY, CANVAS_TAG, 'true');
-  frame.fills       = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 }, opacity: 0 }];
-  frame.clipsContent = true;
   setConfig(frame, { cols: cols, rows: rows, cellSize: cellSize, gap: gap, offsetX: offsetX, offsetY: offsetY });
+
+  // Write cells into the plugin's own layer; the frame's fill and other layers
+  // are never touched. Replace previously-painted cells, keep trace_ guides.
+  var layer = ensurePaintLayer(frame);
+  layer.children.slice().forEach(function (c) { if (isCell(c)) c.remove(); });
+  if (createNew) layer.fills = [];
 
   var cellCornerR = cornerRadiusPct > 0
     ? Math.round((cornerRadiusPct / 100) * (cellSize / 2))
@@ -3729,7 +3817,7 @@ async function applyCanvasToFigma(frameId, cells, cols, rows, cellSize, gap, cre
         cell.strokes = [];
         if (cellCornerR > 0) cell.cornerRadius = cellCornerR;
       }
-      frame.appendChild(cell);
+      layer.appendChild(cell);
     }
   }
 
@@ -3743,20 +3831,24 @@ async function applyCanvasToFigma(frameId, cells, cols, rows, cellSize, gap, cre
 // ── Place trace ───────────────────────────────────────────────────────────────
 
 function placeTrace(pixels, cols, rows, cellSize, gap, refOpacity, skipEmpty) {
-  var sel = figma.currentPage.selection;
-  if (sel.length !== 1 || !isCanvas(sel[0])) {
+  var sel  = figma.currentPage.selection;
+  var node = sel.length === 1 ? sel[0] : null;
+  if (node && isPaintLayer(node) && node.parent && node.parent.type === 'FRAME') node = node.parent;
+  if (!node || !isCanvas(node)) {
     figma.ui.postMessage({ type: 'error', message: 'Select a pixel canvas first.' });
     return;
   }
-  var frame  = sel[0];
+  var frame  = node;
   var stride = cellSize + gap;
 
   var cfg     = getConfig(frame) || {};
   var offsetX = cfg.offsetX || 0;
   var offsetY = cfg.offsetY || 0;
 
+  var layer = ensurePaintLayer(frame);
+
   // Remove existing trace
-  frame.children.slice().forEach(function (c) {
+  layer.children.slice().forEach(function (c) {
     if (c.name && c.name.indexOf('trace_') === 0) c.remove();
   });
 
@@ -3771,7 +3863,7 @@ function placeTrace(pixels, cols, rows, cellSize, gap, refOpacity, skipEmpty) {
       cell.y      = offsetY + r * stride;
       cell.fills  = hex ? solidFill(hex, refOpacity) : transparentFill();
       cell.locked = true;
-      frame.insertChild(0, cell);
+      layer.insertChild(0, cell);
     }
   }
 
