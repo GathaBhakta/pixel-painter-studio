@@ -35,8 +35,8 @@ node build.js
 | `ui/app.js` | UI controller: tool state, color arming, palettes, message routing, boot |
 | `ui/history.js` | Undo/redo stack |
 | `ui/colors.js` | Color utilities, library import, palette management |
-| `ui/tools.js` | Reserved — currently empty |
-| `ui/export.js` | Reserved — currently empty |
+| `ui/tools.js` | Floating toolbar, tool submenus, tooltips, context menu, status bar, collapse-panels mode |
+| `ui/export.js` | Builds the `apply-to-figma` message (flattens visible layers via `getCanvasState()`) |
 | `icon.svg` | Plugin icon — used for Community listing upload, not referenced in manifest |
 | `CASE_STUDY.md` | Project case study — no effect on plugin | Deleted from GitHub file |
 
@@ -60,29 +60,43 @@ node build.js
 ## Key design decisions — do not change these
 
 - **Painting surface is HTML canvas, not Figma** — drag-to-paint only works because `mousemove` fires continuously in the browser. Figma's `selectionchange` fires on discrete clicks only. Do not move painting back to Figma.
-- **All plugin nodes live in one `Pixel Painter` child frame** (`ensurePaintLayer`, tagged `pixelLayer=true` in shared plugin data). `fillFrame` / `applyCanvasToFigma` / `placeTrace` only ever touch this layer — they must NOT remove the target frame's other children or write to `frame.fills`. This is what keeps a user's background fill / image / layers alive across Fill Frame and Apply. The paper ground (`#F2EDE4`) is a fill on the layer, applied only when `frameHasOwnBackground(frame)` is false. `openCanvas` reads cells from the layer, falling back to loose frame children for canvases made before this change.
+- **All plugin nodes live in one `Pixel Painter` child frame** (`ensurePaintLayer`, tagged `pixelLayer=true` in shared plugin data). `fillFrame` / `applyCanvasToFigma` / `placeTrace` only ever touch this layer — they must NOT remove the target frame's other children or write to `frame.fills`. This is what keeps a user's background fill / image / layers alive across Fill Frame and Apply. The ground (`GROUND_HEX`, **white `#FFFFFF`** since v1.3 — the old cream `#F2EDE4` is retired) is a fill on the layer, set by `applyGround()` only when `frameHasOwnBackground(frame)` is false. `applyGround()` runs in `fillFrame` **and on every `applyCanvasToFigma`** (both Apply to Frame and Apply as New), so layers that never went through `fillFrame` — pre-v1.2 canvases migrated on Apply, frames made by Apply as New / the re-fill save — still get a ground instead of staying transparent. Apply as New keeps `frame.fills = []`; its ground is on the layer like every other canvas. `openCanvas` reads cells from the layer, falling back to loose frame children for canvases made before this change.
 - **Recent colors are added on paint, not on arm** — `_doArmColor` must never call `_addToRecent`. Arming fires on every HSB-picker drag step, which would flood the history. The canvas paint paths (`_onCellPainted`, `_floodFill`, `_commitShape`) are the only callers. Colors are never removed from history, even when erased from the canvas.
 - **`_lastMouseCell` separate from `_lastPaintCell`** — Bresenham interpolation uses `_lastMouseCell` (always updated to current mouse position) as start point. `_lastPaintCell` is only for the skip-duplicate guard inside `_paintAt`. Conflating them causes stroke gaps.
 - **`updateThumbnail()` called once per mouse event, not per cell** — calling it inside the Bresenham loop caused full canvas redraws per pixel, breaking painting responsiveness.
 - **`_addToRecent()` has an early-exit guard** — returns immediately if the hex is already first in the recent list. Prevents per-cell DOM re-render and IPC during strokes.
 - **No Tools tab** — color replace, cleanup, SVG export were removed. Figma covers them natively. Do not add them back.
 - **Tab bar is hidden** (`display: none` in CSS) — only the Setup panel exists. `switchTab`/`initTabs` were removed.
-- **Armed color signifier** — `border: 2.5px solid var(--rose)` on `.quick-swatch.armed`, `.recent-sw.armed`, `.sw.armed-item .sw-sq`. Uses border (inside box model) not outline or box-shadow, so it never clips.
+- **Setup screen is state-driven** — `handleSelection()` fills the `_setup` object and `renderSetup()` paints everything (status row, scaled frame preview, Result deltas, footer CTAs) through `#panel-setup[data-sel]` (`none` / `invalid` / `frame` / `canvas`) plus `.is-changed` / `.is-too-many`. Its cols/rows/margins use the same formula as `fillFrame` (`floor((W + gap) / (cell + gap))`, centred offsets) — keep the two in sync. `probeSelection` sends `mode: 'invalid'` for a selected `GROUP`. Re-fill has no `confirm()` dialog (Figma's plugin iframe can't show modals); the inline "This will clear the current frame." banner is the confirmation.
+- **Armed color signifier** — `border: 2.5px solid var(--accent)` on `.quick-swatch.armed`, `.recent-sw.armed`, `.sw.armed-item .sw-sq`. Uses border (inside box model) not outline or box-shadow, so it never clips.
 - **Library swatches** — `grid-template-columns: repeat(4, minmax(0, 1fr))` with `min-width: 0` on `.sw`. The `minmax(0, 1fr)` is critical — `1fr` alone inflates auto-minimum via `white-space: nowrap` on labels.
 
 ---
 
 ## Color palette (CSS variables)
 
+As of v1.3 the plugin uses **Figma's own UI chrome** (UI3: blue accent, neutral grays, Inter) instead of the old warm brand palette (rose / terra / sage / ink / cream). A plugin that looks like part of Figma feels native and trustworthy; the old palette made it read as a separate app. The tokens come from the "Pixel Painter Canvas" Claude Design mockup. The old variables (`--rose`, `--terra`, `--sage`, `--ink`, `--cr`, `--pd`, `--il`, `--im`, `--p`) are gone — don't reintroduce them for UI chrome.
+
 ```css
---rose:  #B8607A   /* primary accent, armed state */
---terra: #A85A3C   /* CTAs, active tab */
---sage:  #556B50   /* secondary actions */
---ink:   #2C2018   /* text, dark elements */
---cr:    #FAF6EF   /* canvas/panel background */
---pd:    #E8E0D4   /* dividers, inactive */
---il:    #8C7260   /* secondary labels */
+--accent:        #0D99FF   /* links, selected/active, primary CTAs, focus, armed swatch border */
+--accent-hover:  #007BE5
+--accent-tint:   #E5F4FF   /* selected layer row, symmetry-on, selected spacing option */
+--bg:            #FFFFFF   /* window + panels */
+--bg-2:          #F5F5F5   /* hover, inputs, secondary surface, canvas stage */
+--border:        #E6E6E6   /* dividers, control borders (also --bg-3: pressed/open) */
+--text:          rgba(0,0,0,.9)
+--text-2:        rgba(0,0,0,.5)   /* secondary labels */
+--text-3:        rgba(0,0,0,.3)   /* disabled / placeholder */
+--danger:        #DC3412   /* delete, clear, remove, re-grid */
+--danger-tint:   #FFF1EE   /* danger hover */
+--chrome:        #1E1E1E   /* tooltips, menus, submenus, toasts (fg #FFF, muted rgba(255,255,255,.5); menu hover = --accent) */
+--r / --r-tool / --r-lg:  5px / 8px / 13px
+--shadow-float / --shadow-pop / --shadow-tip / --shadow-window   /* see styles.css :root */
 ```
+
+- **Primary button** = solid `--accent`, white text, 5px radius, hover `--accent-hover` (`.btn-terra` / `.btn-sage` are legacy class names; both are primary now). **Secondary** = white, 1px `--border`. **Destructive** = secondary with `--danger` text.
+- **Type:** Inter 400/500/600, base 11px/16px, `0.005em` tracking; section headers 13px/18px 600. Inter is **base64-embedded** as `@font-face` at the bottom of `ui/styles.css` (source files in `ui/assets/fonts/`) — no font CDN, keeps the zero-network rule.
+- Paintable preset colors in `app.js` (`QUICK_PALETTE`, default armed color `#B8607A`) are content, not chrome, and still use the original warm palette.
 
 ---
 

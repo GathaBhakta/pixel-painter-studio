@@ -9,9 +9,10 @@
 <!-- ═══ NORMAL-MODE CHROME ═══════════════════════════════════════════════════ -->
 
 <div class="header" id="header">
-  <div>
+  <span class="pps-mark pps-mark-lg"></span>
+  <div class="header-text">
     <span class="header-title">Pixel Painter Studio</span>
-    <span class="header-sub">Frame-first · canvas-paint · export</span>
+    <span class="header-sub">First, set the grid and cell size for your sprite.</span>
   </div>
 </div>
 
@@ -19,151 +20,119 @@
   <button class="tab active" data-tab="setup">Setup</button>
 </div>
 
-<!-- ═══ PAINT-MODE TOOLBAR ════════════════════════════════════════════════════ -->
-
-<!-- Pick-mode banner — shown when eyedropper is active -->
-<div class="pick-banner" id="pick-banner">
-  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M10 2l4 4-6 6-1.5-.5-3 3H2v-2l3-3-.5-1.5L10 2z"/>
-    <circle cx="11" cy="5" r="1" fill="currentColor" stroke="none"/>
-  </svg>
-  <span>Click any element in Figma to sample its color</span>
-  <button class="pick-cancel-btn" id="pick-cancel" title="Cancel">&#10005;</button>
-</div>
-
-<!-- Selection banner — shown when wand selection is active -->
-<div class="sel-banner" id="sel-banner">
-  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
-    <rect x="2" y="2" width="12" height="12" rx="1" stroke-dasharray="3,2"/>
-    <line x1="11" y1="11" x2="14.5" y2="14.5" stroke-width="1.8" stroke-linecap="round"/>
-  </svg>
-  <span id="sel-count">0 cells selected</span>
-  <div class="sel-actions">
-    <button class="sel-btn sel-fill-btn" id="sel-fill-btn" title="Fill selection with current color">Fill</button>
-    <button class="sel-btn sel-remove-btn" id="sel-remove-btn" title="Erase selected cells">Remove</button>
-    <button class="sel-cancel-btn" id="sel-deselect-btn" title="Deselect (Esc)">&#10005;</button>
-  </div>
-</div>
-
-<div class="toolbar" id="toolbar">
-  <button class="tool-back" id="btn-back">&#8592; Setup</button>
-  <div class="tool-sep"></div>
-
-  <button class="tool-btn active" id="tool-pen" data-tool="pen" title="Pen (P)">
-    <svg viewBox="0 0 16 16"><path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" stroke-width="1.3"/></svg>
-    <span>Pen</span>
-  </button>
-  <button class="tool-btn" id="tool-eraser" data-tool="eraser" title="Eraser (E)">
-    <svg viewBox="0 0 16 16"><rect x="2" y="6" width="12" height="7" rx="1.5" stroke-width="1.3"/><line x1="5.5" y1="6" x2="4" y2="13" stroke-width="1.3"/></svg>
-    <span>Eraser</span>
-  </button>
-  <button class="tool-btn" id="tool-eye" data-tool="eyedropper" title="Eyedropper (I)">
-    <svg viewBox="0 0 16 16"><path d="M10 2l4 4-6 6-1.5-.5-3 3H2v-2l3-3-.5-1.5L10 2z" stroke-width="1.3"/></svg>
-    <span>Pick</span>
-  </button>
-  <button class="tool-btn" id="tool-bucket" data-tool="bucket" title="Fill (B)">
-    <svg viewBox="0 0 16 16" stroke-width="1.3" fill="none"><path d="M3 12.5l5-9 5 9"/><path d="M4.5 10h7"/><circle cx="13.5" cy="13" r="1.5" fill="currentColor" stroke="none"/></svg>
-    <span>Fill</span>
-  </button>
-  <button class="tool-btn" id="tool-rect" data-tool="rect" title="Rectangle (R)  ·  Shift = square">
-    <svg viewBox="0 0 16 16" stroke-width="1.3" fill="none"><rect x="2.5" y="4.5" width="11" height="7" rx="0.5"/></svg>
-    <span>Rect</span>
-  </button>
-  <button class="tool-btn" id="tool-oval" data-tool="oval" title="Oval (O)  ·  Shift = circle">
-    <svg viewBox="0 0 16 16" stroke-width="1.3" fill="none"><ellipse cx="8" cy="8" rx="5.5" ry="4"/></svg>
-    <span>Oval</span>
-  </button>
-  <button class="tool-btn" id="tool-line" data-tool="line" title="Line (L)  ·  Shift = 45&deg; snap">
-    <svg viewBox="0 0 16 16" stroke-width="1.3" stroke-linecap="round"><line x1="3" y1="13" x2="13" y2="3"/></svg>
-    <span>Line</span>
-  </button>
-  <button class="tool-btn" id="tool-wand" data-tool="wand" title="Select by color (W)">
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
-      <rect x="1.5" y="1.5" width="9" height="9" rx="0.5" stroke-dasharray="2.5,1.8"/>
-      <line x1="9.5" y1="9.5" x2="14" y2="14" stroke-width="1.7"/>
-    </svg>
-    <span>Select</span>
-  </button>
-
-  <div class="tool-sep"></div>
-
-  <button class="tool-btn" id="sym-h" data-mode="H" title="Symmetry: Horizontal — click again to turn off">
-    <svg viewBox="0 0 16 16" stroke-width="1.3" fill="none"><line x1="2" y1="8" x2="14" y2="8"/><line x1="5" y1="4" x2="5" y2="12"/><line x1="11" y1="4" x2="11" y2="12"/></svg>
-    <span>Sym H</span>
-  </button>
-  <button class="tool-btn" id="sym-v" data-mode="V" title="Symmetry: Vertical — click again to turn off">
-    <svg viewBox="0 0 16 16" stroke-width="1.3" fill="none"><line x1="8" y1="2" x2="8" y2="14"/><line x1="4" y1="5" x2="12" y2="5"/><line x1="4" y1="11" x2="12" y2="11"/></svg>
-    <span>Sym V</span>
-  </button>
-  <button class="tool-btn" id="sym-4" data-mode="4" title="Symmetry: 4-way — click again to turn off">
-    <svg viewBox="0 0 16 16" stroke-width="1.3" fill="none"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>
-    <span>Sym 4</span>
-  </button>
-
-  <div class="tool-sep"></div>
-
-  <button class="tool-btn" id="tool-undo" title="Undo (Ctrl+Z)">
-    <svg viewBox="0 0 16 16" stroke-width="1.3"><path d="M4 8a5 5 0 1 1 1.2 3.3" fill="none"/><polyline points="1.5,5 4,8 6.5,5.5" fill="none"/></svg>
-    <span>Undo</span>
-  </button>
-  <button class="tool-btn" id="tool-redo" title="Redo (Ctrl+Shift+Z)">
-    <svg viewBox="0 0 16 16" stroke-width="1.3"><path d="M12 8a5 5 0 1 0-1.2 3.3" fill="none"/><polyline points="14.5,5 12,8 9.5,5.5" fill="none"/></svg>
-    <span>Redo</span>
-  </button>
-
-</div>
-
 <!-- ═══ NORMAL-MODE PANELS ════════════════════════════════════════════════════ -->
 
 <div class="panels-wrap" id="panels-wrap">
 
   <!-- ─── SETUP ────────────────────────────────────────────────────────────── -->
-  <div class="tab-panel active" id="panel-setup">
+  <!-- State lives on #panel-setup as data-sel="none|invalid|frame|canvas" and
+       .is-changed / .is-too-many classes — set by renderSetup() in app.js. -->
+  <div class="tab-panel active" id="panel-setup" data-sel="none">
 
-    <div class="sel-bar empty" id="sel-bar">
-      <div class="sel-title">No frame selected</div>
-      <div class="sel-sub">Select a plain frame in Figma to fill it with a pixel grid</div>
-      <button class="btn btn-sage sel-open-btn" id="btn-open-canvas">Continue Painting</button>
-    </div>
+    <!-- Selection -->
+    <section class="su-sec su-sec-sel">
+      <div class="su-sec-hd">
+        <span class="su-sec-title">Selection</span>
+        <span class="su-status" id="su-status">
+          <svg class="su-status-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          <span class="su-status-dot"></span>
+          <span id="su-status-text">Nothing selected</span>
+        </span>
+      </div>
 
-    <div class="sec">Cell Size</div>
-    <div class="snap-row" id="snap-setup">
-      <button class="snap" data-s="4">4</button>
-      <button class="snap" data-s="8">8</button>
-      <button class="snap" data-s="10">10</button>
-      <button class="snap" data-s="12">12</button>
-      <button class="snap on" data-s="16">16</button>
-      <button class="snap" data-s="24">24</button>
-      <button class="snap" data-s="32">32</button>
-      <button class="snap" data-s="48">48</button>
-    </div>
+      <div class="su-stage">
+        <div class="su-frame" id="su-frame">
+          <div class="su-grid" id="su-grid"></div>
+          <span class="su-frame-name" id="su-frame-name"></span>
+          <span class="su-frame-dims" id="su-frame-dims"></span>
+        </div>
+        <div class="su-empty su-empty-none">
+          <span class="su-empty-title">No frame selected</span>
+          <span class="su-empty-sub">Select a frame on the canvas to fill it with a pixel grid.</span>
+        </div>
+        <div class="su-empty su-empty-invalid">
+          <span class="su-empty-title">Selection is a group</span>
+          <span class="su-empty-sub">Pixel grids need a frame. Press <span id="su-frame-key">⌥⌘G</span> to frame the selection.</span>
+        </div>
+      </div>
 
-    <div class="sec">Cell Spacing</div>
-    <div class="sp-row">
-      <label class="sp-opt on" id="sp1">
-        <div class="sp-dot"></div>
-        <div><div class="sp-txt">1px gap</div><div class="sp-sub">Cross-stitch</div></div>
-      </label>
-      <label class="sp-opt" id="sp0">
-        <div class="sp-dot"></div>
-        <div><div class="sp-txt">No gap</div><div class="sp-sub">Solid weave</div></div>
-      </label>
-    </div>
+      <div class="su-tip">
+        <span>Cells are centred, so none get clipped</span>
+        <span class="su-tip-muted" id="su-margins">· Margins 0 × 0px</span>
+      </div>
+    </section>
 
-    <div class="sec">Grid Preview</div>
-    <div class="grid-calc">
-      <div><div class="gc-label">Columns</div><div class="gc-val" id="gc-cols">—</div></div>
-      <div><div class="gc-label">Rows</div><div class="gc-val" id="gc-rows">—</div></div>
-      <div><div class="gc-label">Total cells</div><div class="gc-val" id="gc-total">—</div></div>
-    </div>
+    <!-- Grid -->
+    <section class="su-sec">
+      <div class="su-sec-hd"><span class="su-sec-title">Grid</span></div>
+      <div class="su-field">
+        <span class="su-label">Cell size</span>
+        <div class="seg seg-8" id="snap-setup">
+          <button class="snap seg-opt" data-s="4">4</button>
+          <button class="snap seg-opt" data-s="8">8</button>
+          <button class="snap seg-opt" data-s="10">10</button>
+          <button class="snap seg-opt" data-s="12">12</button>
+          <button class="snap seg-opt on" data-s="16">16</button>
+          <button class="snap seg-opt" data-s="24">24</button>
+          <button class="snap seg-opt" data-s="32">32</button>
+          <button class="snap seg-opt" data-s="48">48</button>
+        </div>
+      </div>
+      <div class="su-field">
+        <span class="su-label">Spacing</span>
+        <div class="seg seg-2">
+          <button class="seg-opt on" id="sp1"><span class="seg-ic seg-ic-gap"></span><span>1px gap</span></button>
+          <button class="seg-opt" id="sp0"><span class="seg-ic seg-ic-solid"></span><span>No gap</span></button>
+        </div>
+      </div>
+    </section>
 
-    <button class="btn btn-terra" id="btn-fill" disabled>Fill Frame &amp; Open Canvas</button>
-    <p class="hint">Draw a frame in Figma, select it, choose a cell size, then click Fill. The window resizes to match your frame.</p>
+    <!-- Result -->
+    <section class="su-sec su-sec-last">
+      <div class="su-sec-hd"><span class="su-sec-title">Result</span></div>
+      <div class="su-stats">
+        <div class="su-stat">
+          <span class="su-stat-val" id="gc-cols">—</span>
+          <span class="su-label">Columns</span>
+          <span class="su-prev"><span id="su-prev-cols"></span><span class="su-delta" id="su-d-cols"></span></span>
+        </div>
+        <div class="su-stat">
+          <span class="su-stat-val" id="gc-rows">—</span>
+          <span class="su-label">Rows</span>
+          <span class="su-prev"><span id="su-prev-rows"></span><span class="su-delta" id="su-d-rows"></span></span>
+        </div>
+        <div class="su-stat">
+          <span class="su-stat-val su-stat-total" id="gc-total">—</span>
+          <span class="su-label">Cells</span>
+          <span class="su-prev"><span id="su-prev-total"></span><span class="su-delta" id="su-d-total"></span></span>
+        </div>
+      </div>
+      <div class="su-compare">
+        <span class="su-muted">Previous</span>
+        <span class="su-muted" id="su-prev-params"></span>
+        <span class="su-faint">→</span>
+        <span class="su-new-tag">New</span>
+        <span class="su-strong" id="su-new-params"></span>
+      </div>
+      <div class="su-note su-note-perf">Over 10,000 cells can slow Figma down. Try a larger cell size.</div>
+      <div class="su-note su-note-warn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        <span id="su-warn-text">This will clear the current frame.</span>
+      </div>
+    </section>
 
   </div><!-- /panel-setup -->
 
-
 </div><!-- /panels-wrap -->
+
+<div class="su-foot" id="su-foot">
+  <span class="su-foot-note" id="su-foot-note">The window resizes to match your frame.</span>
+  <div class="su-foot-btns">
+    <button class="btn btn-ghost su-btn" id="btn-refill" disabled>Re-fill frame</button>
+    <button class="btn btn-sage su-btn" id="btn-open-canvas">Continue painting</button>
+    <button class="btn btn-terra su-btn" id="btn-fill" disabled>Fill frame &amp; open canvas</button>
+  </div>
+</div>
 
 <!-- ═══ PAINT-MODE BODY ═══════════════════════════════════════════════════════ -->
 
@@ -171,78 +140,261 @@
 
   <!-- ── LEFT PANEL ──────────────────────────────────────────────────────────── -->
   <div class="left-panel" id="left-panel">
+    <span class="panel-resize panel-resize-left" id="left-resize" title="Drag to resize"></span>
 
-    <!-- Preview section -->
-    <div class="lp-section">
-      <div class="lp-section-hd">
-        <span class="lp-section-title">Preview</span>
-        <button class="lp-collapse-btn" id="thumb-toggle" aria-label="Collapse preview">&#9660;</button>
+    <div class="lp-head">
+      <button class="icon-btn lp-home" id="btn-back" title="Back to setup — change cell size or spacing">
+        <span class="pps-mark"></span>
+        <svg class="lp-home-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      </button>
+      <div class="lp-head-text">
+        <span class="lp-head-title" id="paint-title">Pixel canvas</span>
+        <span class="lp-head-sub" id="paint-dims">— × —</span>
       </div>
-      <div class="lp-section-body" id="thumb-body">
-        <div class="thumb-wrap" id="thumb-wrap">
-          <canvas id="canvas-thumb"></canvas>
-        </div>
-      </div>
+      <button class="icon-btn" id="btn-hide-panels" title="Hide panels (Ctrl+\)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
+      </button>
     </div>
 
-    <!-- Reference section -->
-    <div class="lp-section" id="lp-ref">
-      <div class="lp-section-hd">
-        <span class="lp-section-title">Reference</span>
-        <button class="lp-collapse-btn" id="ref-collapse-btn" aria-label="Collapse reference">&#9660;</button>
-      </div>
-      <div class="lp-section-body" id="ref-body">
+    <div class="lp-sections" id="lp-sections">
 
-        <div class="ref-drop-mini" id="ref-drop-mini">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="12" height="12" rx="2"/><circle cx="5.5" cy="5.5" r="1.2" fill="currentColor" stroke="none"/><polyline points="14,11 10.5,7.5 3,14"/></svg>
-          <span>Drop image or click to browse</span>
+      <!-- Layers -->
+      <section class="lp-sec" data-sec="layers" id="sec-layers">
+        <div class="lp-sec-hd" draggable="true" title="Drag to reorder · right-click for options">
+          <span class="drag-grip" aria-hidden="true"><svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor"><circle cx="2" cy="2" r="1.2"/><circle cx="6" cy="2" r="1.2"/><circle cx="2" cy="7" r="1.2"/><circle cx="6" cy="7" r="1.2"/><circle cx="2" cy="12" r="1.2"/><circle cx="6" cy="12" r="1.2"/></svg></span>
+          <button class="lp-sec-toggle" data-sec-toggle="layers">
+            <svg class="lp-chev" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            <span class="lp-section-title">Layers</span>
+          </button>
+          <button class="icon-btn icon-btn-sm" id="layer-add" title="Add layer">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          </button>
+        </div>
+        <div class="lp-sec-body layers-body">
+          <div class="layer-list" id="layer-list"></div>
+          <div class="layer-opacity-row">
+            <span class="field-cap">Opacity</span>
+            <div class="num-field">
+              <span class="num-scrub" id="layer-op-scrub" title="Drag to adjust"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="7"/><circle cx="15" cy="15" r="7"/></svg></span>
+              <input class="num-input" id="layer-op-input" type="text" inputmode="numeric" spellcheck="false" value="100">
+              <span class="num-unit">%</span>
+            </div>
+          </div>
+          <div class="layer-actions">
+            <button class="icon-btn" id="layer-up" title="Move layer up">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
+            </button>
+            <button class="icon-btn" id="layer-down" title="Move layer down">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+            </button>
+            <button class="icon-btn" id="layer-dup" title="Duplicate layer">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            </button>
+            <button class="icon-btn icon-btn-danger" id="layer-del" title="Delete layer">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            </button>
+            <span class="layer-count" id="layer-count">1 layer</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Preview -->
+      <section class="lp-sec" data-sec="preview" id="sec-preview">
+        <div class="lp-sec-hd" draggable="true" title="Drag to reorder · right-click for options">
+          <span class="drag-grip" aria-hidden="true"><svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor"><circle cx="2" cy="2" r="1.2"/><circle cx="6" cy="2" r="1.2"/><circle cx="2" cy="7" r="1.2"/><circle cx="6" cy="7" r="1.2"/><circle cx="2" cy="12" r="1.2"/><circle cx="6" cy="12" r="1.2"/></svg></span>
+          <button class="lp-sec-toggle" data-sec-toggle="preview">
+            <svg class="lp-chev" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            <span class="lp-section-title">Preview</span>
+            <span class="lp-sec-meta" id="preview-stats">0 cells · 0 colors</span>
+          </button>
+        </div>
+        <div class="lp-sec-body">
+          <div class="thumb-wrap" id="thumb-wrap">
+            <canvas id="canvas-thumb"></canvas>
+          </div>
+          <span class="preview-resize" id="preview-resize" title="Drag to resize"></span>
+        </div>
+      </section>
+
+      <!-- Reference -->
+      <section class="lp-sec" data-sec="ref" id="sec-ref">
+        <div class="lp-sec-hd" draggable="true" title="Drag to reorder · right-click for options">
+          <span class="drag-grip" aria-hidden="true"><svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor"><circle cx="2" cy="2" r="1.2"/><circle cx="6" cy="2" r="1.2"/><circle cx="2" cy="7" r="1.2"/><circle cx="6" cy="7" r="1.2"/><circle cx="2" cy="12" r="1.2"/><circle cx="6" cy="12" r="1.2"/></svg></span>
+          <button class="lp-sec-toggle" data-sec-toggle="ref">
+            <svg class="lp-chev" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            <span class="lp-section-title">Reference</span>
+            <span class="lp-sec-meta" id="ref-status">None</span>
+          </button>
+        </div>
+        <div class="lp-sec-body">
           <input type="file" id="ref-file-input" accept="image/*" style="display:none">
-        </div>
 
-        <div id="ref-loaded" style="display:none">
-          <div class="ref-thumb-row">
-            <img id="ref-thumb" class="ref-thumb" alt="Reference">
-            <button class="btn-icon-sm" id="ref-remove-btn" title="Remove">&#10005;</button>
-          </div>
-          <div class="trace-opacity-row">
-            <input type="range" id="ref-opacity" min="10" max="80" value="40" step="5" class="trace-slider">
-            <span id="ref-opacity-val">40%</span>
-          </div>
-          <label class="ref-toggle-label">
-            <input type="checkbox" id="ref-vis-toggle" checked>
-            <span>Show in canvas</span>
-          </label>
-          <p class="hint" style="margin-top:2px">Blue bar = drag to move · corner = resize</p>
-        </div>
+          <button class="ref-drop" id="ref-drop-mini">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+            <span>Drop an image or click to browse</span>
+          </button>
 
-      </div>
+          <div class="ref-loaded" id="ref-loaded" style="display:none">
+            <div class="ref-loaded-row">
+              <img id="ref-thumb" class="ref-thumb" alt="Reference">
+              <div class="ref-controls">
+                <div class="num-field">
+                  <span class="num-scrub" id="ref-op-scrub" title="Drag to adjust opacity"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="7"/><circle cx="15" cy="15" r="7"/></svg></span>
+                  <input class="num-input" id="ref-opacity" type="text" inputmode="numeric" spellcheck="false" value="40">
+                  <span class="num-unit">%</span>
+                </div>
+                <div class="ref-btns">
+                  <button class="chip-btn" id="ref-vis-toggle">Hide</button>
+                  <button class="chip-btn" id="ref-replace-btn">Replace</button>
+                  <button class="chip-btn chip-btn-danger" id="ref-remove-btn">Remove</button>
+                </div>
+              </div>
+            </div>
+            <p class="hint">Blue bar = drag to move · corner = resize</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="lp-filler"></div>
     </div>
-
   </div><!-- /left-panel -->
 
-  <!-- ── CANVAS AREA (scroll + zoom bar) ───────────────────────────────────── -->
+  <!-- ── CANVAS AREA ─────────────────────────────────────────────────────────── -->
   <div class="canvas-area" id="canvas-area">
-    <div class="canvas-scroll" id="canvas-scroll">
-      <img id="ref-image" alt="">
-      <canvas id="paint-canvas"></canvas>
-      <canvas id="preview-canvas"></canvas>
-      <div class="ref-handle" id="ref-handle-move"></div>
-      <div class="ref-handle" id="ref-handle-br"></div>
-      <div class="sym-axis sym-axis-h" id="sym-axis-h"></div>
-      <div class="sym-axis sym-axis-v" id="sym-axis-v"></div>
-    </div>
-    <div class="zoom-bar" id="zoom-bar">
-      <button class="zoom-btn" id="zoom-out" title="Zoom out">−</button>
-      <span class="zoom-level" id="zoom-level">100%</span>
-      <button class="zoom-btn" id="zoom-in"  title="Zoom in">+</button>
-      <div class="zoom-sep"></div>
-      <button class="zoom-btn zoom-fit-btn" id="zoom-fit" title="Fit canvas to window">Fit</button>
-      <span class="zoom-hint">Scroll to zoom · Space+drag to pan</span>
+    <div class="canvas-stage" id="canvas-stage">
+      <div class="canvas-scroll" id="canvas-scroll">
+        <img id="ref-image" alt="">
+        <canvas id="paint-canvas"></canvas>
+        <canvas id="preview-canvas"></canvas>
+        <div class="ref-handle" id="ref-handle-move"></div>
+        <div class="ref-handle" id="ref-handle-br"></div>
+        <div class="sym-axis sym-axis-h" id="sym-axis-h"></div>
+        <div class="sym-axis sym-axis-v" id="sym-axis-v"></div>
+      </div>
+
+      <!-- Collapse-panels mode: floating title pill + current-color pill -->
+      <div class="float-pill float-head" id="float-head">
+        <button class="icon-btn lp-home" id="btn-back-float" title="Back to setup — change cell size or spacing">
+          <span class="pps-mark"></span>
+          <svg class="lp-home-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        </button>
+        <span class="float-title" id="float-title">Pixel canvas</span>
+        <button class="icon-btn" id="btn-show-panels" title="Show panels (Ctrl+\)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
+        </button>
+      </div>
+      <button class="float-pill float-hex" id="float-hex" title="Show panels">
+        <span class="armed-chip"></span><span id="float-hex-val">#B8607A</span>
+      </button>
+
+      <!-- Pick-mode banner — shown when eyedropper is active -->
+      <div class="pick-banner" id="pick-banner">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"/></svg>
+        <span>Click any element in Figma — or a cell — to sample its color</span>
+        <button class="pick-cancel-btn" id="pick-cancel" title="Cancel">&#10005;</button>
+      </div>
+
+      <!-- Bottom dock: selection action bar + floating toolbar -->
+      <div class="dock" id="dock">
+
+        <div class="sel-banner" id="sel-banner">
+          <span id="sel-count">0 selected</span>
+          <button class="sel-btn" id="sel-fill-btn" title="Fill selection with current color"><span class="armed-chip armed-chip-sm"></span>Fill</button>
+          <button class="sel-btn sel-btn-danger" id="sel-remove-btn" title="Erase selected cells (Delete)">Delete</button>
+          <button class="sel-btn sel-btn-muted" id="sel-deselect-btn" title="Deselect (Esc)">Esc</button>
+        </div>
+
+        <div class="toolbar" id="toolbar">
+          <button class="tb-btn" data-tool="move" data-tip="Move" data-key="V">
+            <svg viewBox="0 0 24 24"><path d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"/></svg>
+          </button>
+          <button class="tb-btn" id="tool-wand" data-tool="wand" data-tip="Magic wand" data-key="W">
+            <svg viewBox="0 0 24 24"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>
+          </button>
+
+          <div class="tb-sep"></div>
+
+          <div class="tb-group" data-menu>
+            <button class="tb-btn tb-main" id="grp-paint" data-group="paint" data-show="pen" data-tip="Pencil" data-key="P">
+              <svg viewBox="0 0 24 24" data-ic="pen"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
+              <svg viewBox="0 0 24 24" data-ic="eraser"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
+            </button>
+            <button class="tb-chev" data-menu-for="paint" aria-label="Paint tools">
+              <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+          </div>
+          <button class="tb-btn" data-tool="bucket" data-tip="Fill" data-key="B">
+            <svg viewBox="0 0 24 24"><path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/><path d="M2 13h15"/><path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"/></svg>
+          </button>
+          <button class="tb-btn" id="tool-eye" data-tool="eyedropper" data-tip="Eyedropper" data-key="I">
+            <svg viewBox="0 0 24 24"><path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"/></svg>
+          </button>
+
+          <div class="tb-sep"></div>
+
+          <div class="tb-group" data-menu>
+            <button class="tb-btn tb-main" id="grp-shape" data-group="shape" data-show="rect" data-tip="Rectangle" data-key="R">
+              <svg viewBox="0 0 24 24" data-ic="rect"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+              <svg viewBox="0 0 24 24" data-ic="line"><path d="M22 2 2 22"/></svg>
+              <svg viewBox="0 0 24 24" data-ic="oval"><circle cx="12" cy="12" r="10"/></svg>
+            </button>
+            <button class="tb-chev" data-menu-for="shape" aria-label="Shape tools">
+              <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+          </div>
+
+          <div class="tb-group" data-menu>
+            <button class="tb-btn tb-main tb-sym" id="grp-sym" data-group="sym" data-show="none" data-tip="Symmetry" data-key="Off">
+              <svg viewBox="0 0 24 24" data-ic="none"><path d="m3 7 5 5-5 5V7"/><path d="m21 7-5 5 5 5V7"/><path d="M12 20v2"/><path d="M12 14v2"/><path d="M12 8v2"/><path d="M12 2v2"/></svg>
+              <svg viewBox="0 0 24 24" data-ic="H"><path d="m3 7 5 5-5 5V7"/><path d="m21 7-5 5 5 5V7"/><path d="M12 20v2"/><path d="M12 14v2"/><path d="M12 8v2"/><path d="M12 2v2"/></svg>
+              <svg viewBox="0 0 24 24" data-ic="V"><path d="m17 3-5 5-5-5h10"/><path d="m17 21-5-5-5 5h10"/><path d="M4 12H2"/><path d="M10 12H8"/><path d="M16 12h-2"/><path d="M22 12h-2"/></svg>
+              <svg viewBox="0 0 24 24" data-ic="4"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/><path d="M3 12h18"/></svg>
+            </button>
+            <button class="tb-chev" data-menu-for="sym" aria-label="Symmetry options">
+              <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div><!-- /canvas-stage -->
+
+    <!-- Status bar: history · zoom · view rotation · cursor coords · tool hint -->
+    <div class="status-bar" id="status-bar">
+      <div class="sb-group">
+        <button class="icon-btn icon-btn-sm" id="tool-undo" title="Undo (Ctrl+Z)" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+        </button>
+        <button class="icon-btn icon-btn-sm" id="tool-redo" title="Redo (Ctrl+Shift+Z)" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/></svg>
+        </button>
+      </div>
+      <div class="sb-sep"></div>
+      <div class="sb-group">
+        <button class="sb-btn" id="zoom-out" title="Zoom out (Ctrl+−)">−</button>
+        <span class="sb-val" id="zoom-level">100%</span>
+        <button class="sb-btn" id="zoom-in" title="Zoom in (Ctrl+=)">+</button>
+        <button class="sb-btn sb-text" id="zoom-fit" title="Fit canvas to window (Ctrl+0)">Fit</button>
+      </div>
+      <div class="sb-sep"></div>
+      <div class="sb-group">
+        <button class="sb-btn" id="rotate-ccw" title="Rotate view 15&deg; counter-clockwise (Alt+scroll)">
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8a6 6 0 1 1 1.8 4.3"/><polyline points="2,4.5 2,8 5.5,8"/></svg>
+        </button>
+        <span class="sb-val" id="rotate-level" title="View rotation — use these buttons or Alt+scroll">0&deg;</span>
+        <button class="sb-btn" id="rotate-cw" title="Rotate view 15&deg; clockwise (Alt+scroll)">
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 8a6 6 0 1 0-1.8 4.3"/><polyline points="14,4.5 14,8 10.5,8"/></svg>
+        </button>
+        <button class="sb-btn sb-text" id="rotate-reset" title="Reset view rotation to 0&deg;">0&deg;</button>
+      </div>
+      <div class="sb-sep"></div>
+      <span class="sb-coords" id="sb-coords">X —  Y —</span>
+      <span class="sb-hint" id="sb-hint">Pencil · Click or drag to paint</span>
     </div>
   </div>
 
   <!-- ── RIGHT PANEL (color) ───────────────────────────────────────────────── -->
   <div class="right-panel" id="right-panel">
+    <span class="panel-resize panel-resize-right" id="right-resize" title="Drag to resize"></span>
 
     <!-- Color source tabs -->
     <div class="color-tabs">
@@ -303,8 +455,8 @@
         <span class="recent-empty" style="grid-column:1/-1">No custom colors yet</span>
       </div>
       <div class="custom-add-row">
-        <button class="btn-small btn-sage"  id="btn-add-custom">+ Current color</button>
-        <button class="btn-small btn-ghost" id="btn-clear-custom">Clear</button>
+        <button class="btn-small btn-sage"  id="btn-add-custom">+ Add color</button>
+        <button class="btn-small btn-ghost" id="btn-clear-custom">Empty swatch</button>
       </div>
     </div>
 
@@ -336,17 +488,96 @@
 
     <!-- Paint actions — always visible below cell shape -->
     <div class="paint-actions">
-      <button class="btn btn-sage"  id="btn-apply-selected" title="Apply painting to the selected Figma frame">Apply to Frame</button>
-      <button class="btn btn-ghost" id="btn-apply-new"      title="Apply as a new Figma frame">Apply as New</button>
-      <button class="btn btn-ghost paint-clear-btn" id="tool-clear" title="Clear all painted cells">Clear Canvas</button>
+      <button class="btn btn-sage"  id="btn-apply-selected" title="Flatten all visible layers and apply to the selected Figma frame">Apply to Frame</button>
+      <div class="paint-actions-row">
+        <button class="btn btn-ghost" id="btn-apply-new" title="Flatten all visible layers into a new Figma frame">Apply as New</button>
+        <button class="btn btn-ghost paint-clear-btn" id="tool-clear" title="Clear every cell on the active layer (undoable)">Clear Layer</button>
+      </div>
     </div>
 
   </div><!-- /right-panel -->
 
 </div><!-- /paint-body -->
 
+<!-- ═══ FLOATING CHROME (fixed-position, outside any clipping container) ══════ -->
+
+<!-- Toolbar popover menus -->
+<div class="pop-menu" id="menu-paint" data-menu>
+  <button class="pop-item" data-pick-tool="pen">
+    <svg class="pop-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+    <svg class="pop-ic" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
+    <span>Pencil</span><span class="pop-key">P</span>
+  </button>
+  <button class="pop-item" data-pick-tool="eraser">
+    <svg class="pop-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+    <svg class="pop-ic" viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
+    <span>Eraser</span><span class="pop-key">E</span>
+  </button>
+</div>
+
+<div class="pop-menu" id="menu-shape" data-menu>
+  <button class="pop-item" data-pick-tool="rect">
+    <svg class="pop-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+    <svg class="pop-ic" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+    <span>Rectangle</span><span class="pop-key">R</span>
+  </button>
+  <button class="pop-item" data-pick-tool="line">
+    <svg class="pop-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+    <svg class="pop-ic" viewBox="0 0 24 24"><path d="M22 2 2 22"/></svg>
+    <span>Line</span><span class="pop-key">L</span>
+  </button>
+  <button class="pop-item" data-pick-tool="oval">
+    <svg class="pop-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+    <svg class="pop-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+    <span>Ellipse</span><span class="pop-key">O</span>
+  </button>
+  <div class="pop-note">Shift = square / circle / 45&deg; snap</div>
+</div>
+
+<div class="pop-menu pop-menu-right" id="menu-sym" data-menu>
+  <button class="pop-item pop-item-plain" data-pick-sym="none">
+    <svg class="pop-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><span>Off</span>
+  </button>
+  <div class="pop-sep"></div>
+  <button class="pop-item pop-item-plain" data-pick-sym="H">
+    <svg class="pop-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><span>Horizontal</span><span class="pop-key">left / right</span>
+  </button>
+  <button class="pop-item pop-item-plain" data-pick-sym="V">
+    <svg class="pop-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><span>Vertical</span><span class="pop-key">top / bottom</span>
+  </button>
+  <button class="pop-item pop-item-plain" data-pick-sym="4">
+    <svg class="pop-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><span>4-way</span>
+  </button>
+</div>
+
+<!-- Right-click context menu (layers, sections) — items built in tools.js -->
+<div class="pop-menu ctx-menu" id="ctx-menu" data-ctx></div>
+
+<!-- Add-swatch popover (Custom colors panel) -->
+<div class="sw-add-pop" id="sw-add-pop">
+  <div class="hsb-canvas-wrap sw-add-sv-wrap">
+    <canvas id="sw-add-sv-canvas" width="216" height="100"></canvas>
+    <div class="hsb-thumb" id="sw-add-sv-thumb"></div>
+  </div>
+  <div class="hue-wrap sw-add-hue-wrap">
+    <canvas id="sw-add-hue-canvas" width="216" height="12"></canvas>
+    <div class="hue-thumb" id="sw-add-hue-thumb"></div>
+  </div>
+  <div class="sw-add-hex-row">
+    <div class="picker-preview sw-add-preview" id="sw-add-preview"></div>
+    <input class="picker-hex-inp sw-add-hex-inp" id="sw-add-hex" type="text" maxlength="6" spellcheck="false">
+  </div>
+  <div class="sw-add-actions">
+    <button class="btn-small btn-ghost" id="sw-add-cancel">Cancel</button>
+    <button class="btn-small btn-sage" id="sw-add-confirm">Add</button>
+  </div>
+</div>
+
+<!-- Toolbar tooltip -->
+<div class="tb-tip" id="tb-tip"><span class="tb-tip-label"></span><span class="tb-tip-key"></span></div>
+
 <!-- ═══ TOAST ══════════════════════════════════════════════════════════════════ -->
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast"><span class="toast-ic"></span><span class="toast-msg"></span></div>
 
 <!-- ═══ WINDOW RESIZE HANDLE ═══════════════════════════════════════════════════ -->
 <div id="win-resize-handle" title="Drag to resize window"></div>
