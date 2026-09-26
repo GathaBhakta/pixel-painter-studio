@@ -41,12 +41,10 @@ and it shows the old grid next to the new one, plus a warning that re-filling
 clears the frame. You'll also get a heads-up when a grid goes over 10,000
 cells, or when you've selected a group instead of a frame.
 
-**⬜ White behind your pixels**
-Empty cells now show white instead of cream. The white also stays in place
-after Apply to Frame and Apply as New. Before, frames made with Apply as New,
-and canvases from older versions, could come out see-through wherever you
-hadn't painted. If your frame has its own background or layers, the plugin
-still leaves them alone and adds nothing behind your pixels.
+**⬜ Empty cells are actually empty now**
+Unpainted cells no longer get a solid color behind them — no more cream, no
+fill at all. If you want a background behind your pixels, paint it yourself;
+the plugin never adds one for you.
 
 **🗄️ Library panel no longer gets stuck loading**
 Opening the Library tab in a file with no local color variables used to show
@@ -72,11 +70,19 @@ The logo in the top-left of the paint screen swaps to a back arrow on hover,
 so it reads as a button — click it any time to jump back and change the cell
 size or spacing.
 
-<!--
-Not yet in any release note (on this branch before the redesign):
-line tool (L), symmetry for shapes + mirrored fill, and view rotation
-(Alt+scroll / status-bar buttons). Fold them into v1.3 if they ship together.
--->
+**📐 Line tool**
+Press L and drag to draw a straight line, Shift to snap to 45° angles —
+alongside Rectangle and Oval in the same toolbar menu.
+
+**🪞 Symmetry covers every tool now**
+H / V / 4-way symmetry used to mirror pen and eraser strokes only. It now
+mirrors rectangles, ovals, lines, and fill bucket too, live in the preview
+and on commit.
+
+**🔄 Rotate your view**
+Alt+scroll, or the new rotate buttons in the status bar, spin your working
+view in 15° steps (reset button included) — handy for painting at an angle.
+Purely visual, your pixels don't move.
 
 ## v1.2
 

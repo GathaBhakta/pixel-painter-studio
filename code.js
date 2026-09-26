@@ -6097,32 +6097,11 @@ function findPaintLayer(frame) {
   return null;
 }
 
-// True when the frame has a deliberate background of its own behind the paint
-// layer — an image/gradient fill, a non-white solid fill, or any other layer.
-// A plain white (default) frame fill doesn't count.
-function frameHasOwnBackground(frame) {
-  var f = frame.fills;
-  if (f && f !== figma.mixed) {
-    for (var i = 0; i < f.length; i++) {
-      var p = f[i];
-      if (p.visible === false) continue;
-      if (p.type !== 'SOLID') return true; // image / gradient / video
-      var op = (p.opacity === undefined) ? 1 : p.opacity;
-      if (op <= 0.001) continue;
-      var nearWhite = p.color.r > 0.97 && p.color.g > 0.97 && p.color.b > 0.97;
-      if (nearWhite && op > 0.99) continue;
-      return true;
-    }
-  }
-  return frame.children.some(function (c) { return !isPaintLayer(c); });
-}
-
-// The ground shown through unpainted cells. It lives on the paint layer (never
-// on frame.fills) and is skipped when the frame has a background of its own.
-var GROUND_HEX = '#FFFFFF';
-
+// Unpainted cells get no fill at all — the paint layer stays fully
+// transparent so empty cells show as genuinely empty, not a solid color.
+// If the user wants a background, they paint it themselves.
 function applyGround(frame, layer) {
-  layer.fills = frameHasOwnBackground(frame) ? [] : solidFill(GROUND_HEX);
+  layer.fills = [];
 }
 
 // Get (creating if needed) the plugin's paint layer for `frame`. Migrates
@@ -6257,7 +6236,6 @@ async function fillFrame(frameId, cellSize, gap) {
   // layers the user added stay exactly as they are.
   var layer = ensurePaintLayer(frame);
   layer.children.slice().forEach(function (c) { c.remove(); });
-  // Ground only when there's nothing of the user's own behind it.
   applyGround(frame, layer);
 
   for (var r = 0; r < rows; r++) {
@@ -6363,7 +6341,7 @@ async function applyCanvasToFigma(frameId, cells, cols, rows, cellSize, gap, cre
     frame.name  = 'Pixel Canvas';
     frame.x     = figma.viewport.center.x;
     frame.y     = figma.viewport.center.y;
-    frame.fills = []; // the white ground goes on the paint layer below, like every other canvas
+    frame.fills = []; // brand-new frame: just the pixels, nothing behind them
     figma.currentPage.appendChild(frame);
     // Brand-new frame is sized to fit the grid exactly, so no centering offset needed.
   } else {
@@ -6387,12 +6365,8 @@ async function applyCanvasToFigma(frameId, cells, cols, rows, cellSize, gap, cre
   // are never touched. Replace previously-painted cells, keep trace_ guides.
   var layer = ensurePaintLayer(frame);
   layer.children.slice().forEach(function (c) { if (isCell(c)) c.remove(); });
-  // Re-assert the ground on every Apply rather than trusting whatever fillFrame
-  // left behind. Layers that never went through fillFrame — canvases migrated
-  // from pre-v1.2 builds (ensurePaintLayer creates them with no fill), frames
-  // made by "Apply as New" / the re-fill save, or a frame whose own background
-  // was removed after Fill — otherwise stay transparent where nothing is painted.
-  // A brand-new frame has no fill or other layers, so it gets the ground too.
+  // No ground fill — unpainted cells stay genuinely empty. If the user wants
+  // a background behind their pixels, they paint it themselves.
   applyGround(frame, layer);
 
   var cellCornerR = cornerRadiusPct > 0

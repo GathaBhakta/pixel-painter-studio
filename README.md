@@ -16,14 +16,21 @@ Pixel Painter Studio moves the painting surface into an HTML canvas inside the p
 
 ## 🌈 Features
 
-- **Drag-to-paint** — pen, eraser, fill bucket, rectangle, oval, magic wand select
-- **Symmetry** — horizontal, vertical, and 4-way with real-time axis overlays
-- **Color** — HSB picker, Figma library colors, custom palette, quick presets, recent colors
+- **Layers** — add, duplicate, delete, reorder, lock, hide, and fade layers with per-layer opacity; every tool paints on the active layer, with live thumbnails and layer-aware undo/redo
+- **Drag-to-paint** — pen, eraser, fill bucket, rectangle, oval, line, magic wand select, move tool
+- **Symmetry** — horizontal, vertical, and 4-way, mirroring every tool (including fill and shapes) with real-time axis overlays
+- **Color** — HSB picker, Figma library colors, custom palette (with its own undo), quick presets, recent colors
 - **Reference image** — drag to reposition, resize, adjust opacity, toggle visibility
 - **Cell shapes** — square, rounded, pill, circle (bead-style designs), cross-stitch
+- **View rotation** — Alt+scroll or status-bar buttons, 15° steps, purely visual
 - **Undo / redo** — 50-step history
 - **Zoom / pan** — scroll to zoom, Space+drag to pan, Ctrl+0 to fit
+- **Setup screen** — live preview of your frame and grid before you commit, with a heads-up when re-filling a painted frame changes its cell size or spacing
 - **Apply** — write to selected frame or create a new one
+
+Looks and feels like it belongs in Figma — blue accents, neutral grays, Inter typeface, no separate visual language to learn.
+
+See [CHANGELOG.md](CHANGELOG.md) for what's new in each release.
 
 ---
 
@@ -33,7 +40,7 @@ Pixel Painter Studio moves the painting surface into an HTML canvas inside the p
 Draw a frame in Figma → Select it → Fill Frame → Paint → Apply
 ```
 
-The plugin window resizes to match your frame's aspect ratio. Painted cells write back into a single `Pixel Painter` layer inside your frame, as named `px_NN_NN` nodes (rectangles, or vectors for the cross-stitch shape) — so any background fill, image, or other layers you set on the frame stay put. From there, use Figma's native tools — export as SVG, flatten, apply effects.
+The setup screen shows a live preview of your frame with the grid overlaid before you commit to a cell size. The plugin window then resizes to match your frame's aspect ratio. Paint on as many layers as you like — they're flattened on Apply into a single `Pixel Painter` layer inside your frame, as named `px_NN_NN` nodes (rectangles, or vectors for the cross-stitch shape) — so any background fill, image, or other layers you set on the frame stay put. From there, use Figma's native tools — export as SVG, flatten, apply effects.
 
 ---
 
@@ -58,10 +65,15 @@ After any change to `ui/` files, run `node build.js` and reload the plugin in Fi
 | `build.js` | Inlines CSS + JS modules into `code.js` |
 | `code.js` | Built output — Figma loads this directly |
 | `manifest.json` | Plugin ID, permissions, API version |
-| `ui/canvas.js` | Painting engine, zoom/pan, symmetry, undo |
-| `ui/app.js` | UI controller, color state, message routing |
+| `ui/canvas.js` | Painting engine: zoom/pan/rotation, symmetry, shapes, layers/compositing, reference image |
+| `ui/tools.js` | Floating toolbar, tool submenus, tooltips, context menu, status bar, collapse-panels mode |
+| `ui/history.js` | Undo/redo stack |
+| `ui/colors.js` | Color utilities, library import, palette management |
+| `ui/export.js` | Builds the apply-to-Figma message (flattens visible layers) |
+| `ui/app.js` | UI controller: tool state, color arming, palettes, message routing, boot |
 | `ui/styles.css` | All styles |
 | `ui/index.html` | Plugin UI shell |
+| `ui/assets/` | Source favicon + Inter font files (embedded as base64 in `styles.css` — no runtime network requests) |
 
 ---
 
